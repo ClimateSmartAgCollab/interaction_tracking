@@ -158,14 +158,34 @@ Fields:
 
 ```text
 interaction_id
+engagement_id
 researcher_id
-date
-interaction_type
+interaction_date
+interaction_channel
 engagement_direction
-interaction_outcome
-interaction_notes
+interaction_purpose
+interaction_summary
+next_action
 ```
 
+engagement_id
+
+Groups related interactions into a single engagement.
+
+Example:
+ENG-0001
+ENG-0002
+
+interaction_purpose
+
+The purpose of the interaction.
+
+Examples:
+initial_outreach
+schema_discussion
+dataset_discussion
+documentation_request
+content_submission
 ---
 
 
@@ -193,12 +213,14 @@ The code should read these sheets dynamically every run.
 Examples:
 
 ```text
-ICT_List
-Role_List
-Status_List
-Interaction_Type_List
-Direction_List
-Outcome_List
+ict
+role
+researcher_status
+interaction_channel
+engagement_direction
+interaction_purpose
+organization
+content_type
 ```
 
 Rules:
@@ -332,11 +354,12 @@ Data Correction Cards
 DashboardMetrics
 │
 ├── executive_summary : EngagementMetrics
-│   ├── total_researchers
-│   ├── new_researchers_this_month
-│   ├── interactions_this_month
-│   ├── contributions_this_month
-│   └── total_contributions
+│ ├── total_researchers
+│ ├── new_researchers_this_month
+│ ├── total_engagements
+│ ├── interactions_this_month
+│ ├── contributions_this_month
+│ └── total_contributions
 │
 ├── ict_performance : list[ICTMetrics]
 │   │
@@ -344,6 +367,7 @@ DashboardMetrics
 │       ├── ict_name
 │       ├── total_researchers
 │       ├── new_researchers_this_month
+│       ├── total_engagements
 │       ├── interactions_this_month
 │       ├── contributions_this_month
 │       └── total_contributions
@@ -449,6 +473,10 @@ Verify that workbook values match the controlled vocabularies defined in the Lis
 ### Relationship Validation
 
 Confirm that references between researchers, interactions, and contributions point to valid records.
+
+### Engagement Validation
+ 
+Verify engagement_id values are populated and consistently used.
 
 ### Duplicate Detection
 
@@ -576,194 +604,201 @@ What does the data tell us?
 
 ---
 
-
-
 # Metrics
 
-
-
-## Researchers
-
-Examples:
+## Executive Summary
 
 ```text
 Total Researchers
-Researchers by ICT
-Researchers by Role
-Researchers by Status
-```
+New Researchers This Month
 
----
+Total Engagements
 
+Interactions This Month
 
-
-## Interactions
-
-Examples:
-
-```text
-Total Interactions
-Interactions by Month
-Interactions by Type
-Interactions by Direction
-Interactions by Outcome
-```
-
----
-
-
-
-## Contributions
-
-Examples:
-
-```text
+Contributions This Month
 Total Contributions
-Contributions by Content Type
-Contributions by ICT
-Contributions by Month
+```
+
+These metrics answer:
+
+```text
+Is the network growing?
+
+How active have we been?
+
+Are contributions being generated?
 ```
 
 ---
-
-
-
-## Engagement Funnel
-
-Examples:
-
-```text
-Prospects
-↓
-Active
-↓
-Contributors
-↓
-Champions
-```
-
----
-
-
-
-## Content Pipeline
-
-Compare:
-
-```text
-content_promised
-```
-
-against
-
-```text
-Contribution records
-```
-
-Questions:
-
-```text
-How much promised content was delivered?
-Which ICTs generate content?
-Which researchers contribute content?
-```
-
----
-
-
 
 # Dashboard Design
 
-Generate a self-contained HTML file.
+Generate a self-contained HTML dashboard.
 
 No web server required.
 
-No cloud hosting required.
-
-No GitHub Pages required.
-
-Open directly in browser.
+Open directly in a browser.
 
 ---
-
-
 
 ## Dashboard Sections
 
-
-
 ### Executive Summary
 
-KPI Cards:
-
 ```text
-Researchers
-Interactions
-Contributions
-Active Researchers
-Champions
+Total Researchers
+New Researchers This Month
+
+Total Engagements
+
+Interactions This Month
+
+Contributions This Month
+Total Contributions
 ```
 
 ---
 
+### ICT Performance
+Table.
+```text
+Total Researchers
 
+New Researchers This Month
+
+Total Engagements
+
+Interactions This Month
+
+Contributions This Month
+
+Total Contributions
+```
+
+The goal is to understand:
+
+```text
+Which ICTs are growing?
+
+Which ICTs are receiving engagement effort?
+
+Which ICTs are generating contributions?
+```
+
+---
 
 ### Researcher Analytics
-
-Charts:
-
+Future development
 ```text
-Researchers by Status
 Researchers by ICT
+
 Researchers by Role
+
+Researchers by Status
+
+Researchers by Organization
 ```
 
 ---
 
-
-
-### Interaction Analytics
-
-Charts:
-
+### Engagement Analytics
+Future development
 ```text
-Interactions by Month
-Interactions by Direction
-Interactions by Outcome
+Total Engagements
+
+Total Interactions
+
+Interactions by Channel
+
+Interactions by Purpose
+
+Interactions per Engagement
+
+Engagements by ICT
 ```
 
 ---
-
-
 
 ### Contribution Analytics
-
-Charts:
-
+Future development
 ```text
-Contributions by Type
-Contributions by Month
+Contributions by Content Type
+
 Contributions by ICT
+
+Contributions by Month
+
+Contributions by Researcher Status
 ```
 
 ---
 
+### Action Queues
 
+Future workflow-focused section.
 
-### Follow-Up Section
-
-Useful action items:
+Examples:
 
 ```text
-Researchers requiring follow-up
-Researchers suggested for dormant status
-Researchers suggested for contributor status
-Researchers suggested for champion status
+Open Actions
+
+Researchers Requiring Follow-Up
+
+Researchers Suggested for Dormant Status
+
+Researchers Suggested for Contributor Status
+
+Researchers Suggested for Champion Status
 ```
 
 ---
 
+### Future Metrics
 
+### Future Metrics
+
+```text
+Average Interactions per Engagement
+
+Average Interactions Before First Response
+
+Average Interactions Before First Contribution
+
+Inbound Response Rate
+
+Response Rate by ICT
+
+Response Rate by Role
+
+Contribution Rate by ICT
+
+Contribution Rate by Role
+
+Average Engagement Duration
+
+Open Engagements
+
+Longest Running Open Engagements
+```
+
+These metrics are intended to answer questions such as:
+
+```text
+How much effort is typically required to get a response?
+
+How much effort is typically required to obtain a contribution?
+
+Which ICTs are easiest to engage?
+
+Which roles are most responsive?
+
+Which ICTs generate the strongest contribution outcomes?
+
+How many interactions are required to support a typical engagement?
+
+Which engagements require follow-up or may be stalled?
+```
 
 # Technology Choices
 
