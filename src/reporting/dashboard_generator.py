@@ -33,6 +33,7 @@ def _render_ict_performance(ict_metrics: list[ICTMetrics]) -> str:
             f"          <td>{_display_value(metrics.ict_name)}</td>\n"
             f"          <td>{metrics.total_researchers}</td>\n"
             f"          <td>{metrics.new_researchers_this_month}</td>\n"
+            f"          <td>{metrics.total_engagements}</td>\n"
             f"          <td>{metrics.interactions_this_month}</td>\n"
             f"          <td>{metrics.contributions_this_month}</td>\n"
             f"          <td>{metrics.total_contributions}</td>\n"
@@ -44,11 +45,12 @@ def _render_ict_performance(ict_metrics: list[ICTMetrics]) -> str:
         <thead>
           <tr>
             <th>ICT</th>
-            <th>Total Researchers</th>
-            <th>New Researchers This Month</th>
-            <th>Interactions This Month</th>
-            <th>Contributions This Month</th>
-            <th>Total Contributions</th>
+            <th title="Total Researchers">Researchers</th>
+            <th title="New Researchers This Month">New</th>
+            <th title="Total Engagements">Engagements</th>
+            <th title="Interactions This Month">Interactions</th>
+            <th title="Contributions This Month">New Contributions</th>
+            <th title="Total Contributions">Total Contributions</th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +123,7 @@ def generate_html_dashboard(
             "New Researchers This Month",
             summary.new_researchers_this_month,
         ),
+        ("Total Engagements", summary.total_engagements),
         ("Interactions This Month", summary.interactions_this_month),
         ("Contributions This Month", summary.contributions_this_month),
         ("Total Contributions", summary.total_contributions),
@@ -212,18 +215,33 @@ def generate_html_dashboard(
     }}
     table {{
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
     }}
     th,
     td {{
-      padding: 12px 14px;
+      padding: 10px 8px;
       border-bottom: 1px solid #d9e2ec;
       text-align: left;
-      white-space: nowrap;
     }}
     th {{
       color: #243b53;
       background: #e8eef3;
+      font-size: 0.9rem;
+      line-height: 1.25;
+      white-space: normal;
+      overflow-wrap: break-word;
+    }}
+    th:first-child,
+    td:first-child {{
+      width: 22%;
+    }}
+    td:first-child {{
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }}
+    td:not(:first-child) {{
+      white-space: nowrap;
     }}
     tbody tr:last-child td {{
       border-bottom: 0;
@@ -233,7 +251,7 @@ def generate_html_dashboard(
     }}
     td:not(:first-child),
     th:not(:first-child) {{
-      text-align: right;
+      text-align: center;
     }}
     .action-queue + .action-queue {{
       margin-top: 32px;
@@ -291,10 +309,6 @@ def generate_html_dashboard(
       {_render_ict_performance(dashboard_metrics.ict_performance)}
     </section>
 
-    <section>
-      <h2>Action Queues</h2>
-      {_render_action_queues(dashboard_metrics.action_queues)}
-    </section>
   </main>
 </body>
 </html>

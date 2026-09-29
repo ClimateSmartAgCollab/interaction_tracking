@@ -61,7 +61,7 @@ def _validate_columns(workbook: WorkbookData) -> None:
         ),
         "interactions": (
             workbook.interactions_df,
-            {"researcher_id", "date"},
+            {"researcher_id", "interaction_date", "engagement_id"},
         ),
         "contributions": (
             workbook.contributions_df,
@@ -97,7 +97,7 @@ def calculate_dashboard_metrics(
     contributions = workbook.contributions_df
 
     new_researchers = _month_mask(researchers, "date_added", current_month)
-    current_interactions = _month_mask(interactions, "date", current_month)
+    current_interactions = _month_mask(interactions, "interaction_date", current_month)
     current_contributions = _month_mask(
         contributions,
         "date_received",
@@ -107,6 +107,7 @@ def calculate_dashboard_metrics(
     executive_summary = EngagementMetrics(
         total_researchers=len(researchers),
         new_researchers_this_month=int(new_researchers.sum()),
+        total_engagements=int(interactions["engagement_id"].nunique()),
         interactions_this_month=int(current_interactions.sum()),
         contributions_this_month=int(current_contributions.sum()),
         total_contributions=len(contributions),
@@ -129,6 +130,9 @@ def calculate_dashboard_metrics(
                 total_researchers=int(ict_researchers.sum()),
                 new_researchers_this_month=int(
                     (ict_researchers & new_researchers).sum()
+                ),
+                total_engagements=int(
+                    interactions.loc[ict_interactions, "engagement_id"].nunique()
                 ),
                 interactions_this_month=int(
                     (ict_interactions & current_interactions).sum()

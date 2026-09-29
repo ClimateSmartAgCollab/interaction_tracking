@@ -60,12 +60,14 @@ def validate_required_columns(
     ]
     interactions_required_columns = [
         "interaction_id",
+        "engagement_id",
         "researcher_id",
-        "date",
-        "interaction_type",
+        "interaction_date",
+        "interaction_channel",
         "engagement_direction",
-        "interaction_outcome",
-        "interaction_notes",
+        "interaction_purpose",
+        "interaction_summary",
+        "next_action",
     ]
     contributions_required_columns = [
         "contribution_id",
@@ -171,10 +173,12 @@ def validate_missing_values(
     ]
     interactions_required_fields = [
         "interaction_id",
+        "engagement_id",
         "researcher_id",
-        "date",
-        "interaction_type",
+        "interaction_date",
+        "interaction_channel",
         "engagement_direction",
+        "interaction_purpose",
     ]
     contributions_required_fields = [
         "contribution_id",
@@ -792,17 +796,12 @@ def generate_recommendations(
 
     # Recommendation rules and their configurable thresholds.
     recommendation_rules = {
-        "prospect_to_active": {
-            "label": "Prospect -> Active",
-            "suggested_status": "active",
+        "prospect_to_participant": {
+            "label": "Prospect -> Participant",
+            "suggested_status": "participant",
         },
-        "active_to_dormant": {
-            "label": "Active -> Dormant",
-            "suggested_status": "dormant",
-            "threshold": workbook.config["dormant_days"],
-        },
-        "active_to_contributor": {
-            "label": "Active -> Contributor",
+        "participant_to_contributor": {
+            "label": "Participant -> Contributor",
             "suggested_status": "contributor",
         },
         "contributor_to_champion": {
@@ -838,7 +837,7 @@ def generate_recommendations(
     )
     interaction_date_columns_available = all(
         column_name in interactions.columns
-        for column_name in ["researcher_id", "date"]
+        for column_name in ["researcher_id", "interaction_date"]
     )
     if interaction_researcher_column_available:
         for _, interaction in interactions.iterrows():
@@ -855,7 +854,7 @@ def generate_recommendations(
             if not interaction_date_columns_available:
                 continue
 
-            interaction_date = interaction["date"]
+            interaction_date = interaction["interaction_date"]
             if is_missing(interaction_date):
                 continue
 
@@ -904,7 +903,7 @@ def generate_recommendations(
                 researcher_id
             )
 
-            prospect_rule = recommendation_rules["prospect_to_active"]
+            prospect_rule = recommendation_rules["prospect_to_participant"]
             if (
                 interaction_direction_columns_available
                 and current_status == "prospect"
@@ -924,36 +923,10 @@ def generate_recommendations(
                         ),
                     )
                 )
-                recommendation_counts["prospect_to_active"] += 1
-
-            dormant_rule = recommendation_rules["active_to_dormant"]
-            if (
-                interaction_date_columns_available
-                and current_status != "dormant"
-                and most_recent_interaction is not None
-            ):
-                days_since_last_interaction = (
-                    today - most_recent_interaction.normalize()
-                ).days
-                if days_since_last_interaction > dormant_rule["threshold"]:
-                    results.recommendations.append(
-                        Recommendation(
-                            recommendation_type="status_change",
-                            researcher_id=researcher_id,
-                            current_status=current_status,
-                            suggested_status=dormant_rule[
-                                "suggested_status"
-                            ],
-                            reason=(
-                                "No interactions in "
-                                f"{days_since_last_interaction} days"
-                            ),
-                        )
-                    )
-                    recommendation_counts["active_to_dormant"] += 1
+                recommendation_counts["prospect_to_participant"] += 1
 
             contributor_rule = recommendation_rules[
-                "active_to_contributor"
+                "participant_to_contributor"
             ]
             if (
                 contribution_columns_available
@@ -973,7 +946,7 @@ def generate_recommendations(
                         ),
                     )
                 )
-                recommendation_counts["active_to_contributor"] += 1
+                recommendation_counts["participant_to_contributor"] += 1
 
             champion_rule = recommendation_rules[
                 "contributor_to_champion"

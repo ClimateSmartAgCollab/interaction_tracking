@@ -10,6 +10,7 @@ class EngagementMetrics:
 
     total_researchers: int
     new_researchers_this_month: int
+    total_engagements: int
     interactions_this_month: int
     contributions_this_month: int
     total_contributions: int
