@@ -148,6 +148,14 @@ date_added
 researcher_status
 ```
 
+The ICT field represents the researcher's primary ICT.
+ 
+Researchers associated with multiple ICTs may list
+multiple ICT values separated by semicolons.
+ 
+Future versions may attribute ICT at the engagement level
+if cross-ICT participation becomes common.
+
 ---
 
 
