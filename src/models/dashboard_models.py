@@ -10,6 +10,7 @@ class EngagementMetrics:
 
     total_researchers: int
     new_researchers_this_month: int
+    total_engagements: int
     interactions_this_month: int
     contributions_this_month: int
     total_contributions: int
@@ -48,3 +49,31 @@ class DashboardMetrics:
     executive_summary: EngagementMetrics
     ict_performance: list[ICTMetrics]
     action_queues: list[ActionQueue] = field(default_factory=list)
+    engagement_reviews: list[EngagementReview] = field(default_factory=list)
+
+@dataclass(frozen=True)
+class InteractionHistoryItem:
+    """One interaction displayed in an engagement review."""
+
+    interaction_date: str
+    engagement_direction: str
+    interaction_channel: str
+    interaction_purpose: str
+    interaction_summary: str
+    next_action: str
+
+
+@dataclass(frozen=True)
+class EngagementReview:
+    """Summary of a single engagement."""
+
+    engagement_id: str
+    researcher_id: int | str
+    researcher_email: str
+    ict_name: str
+    interaction_count: int
+    contribution_count: int
+    latest_interaction_date: str
+    latest_next_action: str
+
+    interaction_history: list[InteractionHistoryItem]

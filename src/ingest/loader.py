@@ -118,7 +118,7 @@ def load_workbook(excel_path: str) -> WorkbookData:
     interactions_df = load_table(
         excel_path,
         "interactions",
-        ["date"],
+        ["interaction_date"],
     )
     contributions_df = load_table(
         excel_path,

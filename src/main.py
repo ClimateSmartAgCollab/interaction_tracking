@@ -23,7 +23,7 @@ def main():
     generate_html_dashboard(
         dashboard_metrics=summary_metrics,
         output_path=run_dir / "engagement_dashboard.html",
-    )
+        )
 
 
 if __name__ == "__main__":
