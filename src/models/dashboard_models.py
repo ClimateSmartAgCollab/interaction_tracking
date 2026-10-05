@@ -70,6 +70,7 @@ class EngagementReview:
     engagement_id: str
     researcher_id: int | str
     researcher_email: str
+    role: str
     project_name: str
     interaction_count: int
     contribution_count: int

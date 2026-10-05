@@ -57,12 +57,22 @@ def _researcher_email_lookup(researchers: pd.DataFrame) -> pd.Series:
     return unique_researchers.set_index("researcher_id")["email"]
 
 
+def _researcher_role_lookup(researchers: pd.DataFrame) -> pd.Series:
+    """Map each researcher ID to its role without duplicating activities."""
+    identified = researchers.dropna(subset=["researcher_id"])
+    unique_researchers = identified.drop_duplicates(
+        subset=["researcher_id"],
+        keep="first",
+    )
+    return unique_researchers.set_index("researcher_id")["role"]
+
+
 def _validate_columns(workbook: WorkbookData) -> None:
     """Raise a clear error when dashboard source columns are unavailable."""
     required_columns = {
         "researchers": (
             workbook.researchers_df,
-            {"researcher_id", "email", "project", "date_added"},
+            {"researcher_id", "email", "role", "project", "date_added"},
         ),
         "interactions": (
             workbook.interactions_df,
@@ -112,6 +122,7 @@ def _build_engagement_reviews(
     workbook: WorkbookData,
     project_lookup: pd.Series,
     email_lookup: pd.Series,
+    role_lookup: pd.Series,
 ) -> list[EngagementReview]:
     """Build one review for each engagement in the interactions table."""
     interactions = workbook.interactions_df
@@ -188,6 +199,7 @@ def _build_engagement_reviews(
 
 
         researcher_email = email_lookup.get(researcher_id, "")
+        researcher_role = role_lookup.get(researcher_id, "")
         # The review combines engagement identity, outcomes, latest action,
         # and complete interaction history in one dashboard-ready object.
         reviews.append(
@@ -195,6 +207,7 @@ def _build_engagement_reviews(
                 engagement_id=_display_text(engagement_id),
                 researcher_id=researcher_id,
                 researcher_email=_display_text(researcher_email),
+                role=_display_text(researcher_role),
                 project_name=_display_text(project_name),
                 interaction_count=len(engagement),
                 contribution_count=contribution_count,
@@ -249,7 +262,6 @@ def calculate_dashboard_metrics(
 
     researcher_projects = researchers["project"]
     project_lookup = _researcher_project_lookup(researchers)
-    print(project_lookup)
 
     # Resolve a single project for every interaction.
     #
@@ -307,6 +319,7 @@ def calculate_dashboard_metrics(
 
 
     email_lookup = _researcher_email_lookup(researchers)
+    role_lookup = _researcher_role_lookup(researchers)
     contribution_projects = contributions[
         "source_interaction_id"
     ].map(interaction_project_lookup)
@@ -314,6 +327,7 @@ def calculate_dashboard_metrics(
         workbook,
         project_lookup,
         email_lookup,
+        role_lookup,
     )
 
     project_performance = []

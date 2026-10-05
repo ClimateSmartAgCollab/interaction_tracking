@@ -40,6 +40,9 @@ def load_table(
             sheet_name=sheet_name,
             parse_dates=date_columns,
         )
+    
+    # Remove rows where every column is empty.
+    table = table.dropna(how="all")
 
     cleaned_column_names = []
     for column_name in table.columns:
@@ -125,6 +128,7 @@ def load_workbook(excel_path: str) -> WorkbookData:
         "contributions",
         ["date_received"],
     )
+
     lists = load_lists(excel_path)
     config = load_config(excel_path)
 

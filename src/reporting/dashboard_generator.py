@@ -94,6 +94,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
         <dl class="engagement-details">
           <div><dt>Engagement ID</dt><dd>{_display_value(review.engagement_id)}</dd></div>
           <div><dt>Researcher email</dt><dd>{_display_value(review.researcher_email)}</dd></div>
+          <div><dt>Role</dt><dd>{_display_value(review.role)}</dd></div>
           <div><dt>Project</dt><dd>{_display_value(review.project_name)}</dd></div>
           <div><dt>Interaction Count</dt><dd>{review.interaction_count}</dd></div>
           <div><dt>Contribution Count</dt><dd>{review.contribution_count}</dd></div>
@@ -190,7 +191,7 @@ def generate_html_dashboard(
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
     summary = dashboard_metrics.executive_summary
     summary_metrics = [
-        ("Total Researchers", summary.total_researchers),
+        ("Total Unique Researchers", summary.total_researchers),
         (
             "New Researchers This Month",
             summary.new_researchers_this_month,
