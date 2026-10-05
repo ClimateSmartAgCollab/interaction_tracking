@@ -17,20 +17,20 @@ class EngagementMetrics:
 
 
 @dataclass(frozen=True)
-class ICTMetrics(EngagementMetrics):
-    """Engagement metrics for one ICT."""
+class ProjectMetrics(EngagementMetrics):
+    """Engagement metrics for one PROJECT."""
 
-    ict_name: str
+    project_name: str
 
 
 @dataclass(frozen=True)
 class ActionItem:
-    """A future dashboard action for a researcher or ICT."""
+    """A future dashboard action for a researcher or PROJECT."""
 
     title: str
     description: str
     researcher_id: Any | None = None
-    ict_name: str | None = None
+    project_name: str | None = None
 
 
 @dataclass
@@ -47,7 +47,7 @@ class DashboardMetrics:
     """All calculated data required by the engagement dashboard."""
 
     executive_summary: EngagementMetrics
-    ict_performance: list[ICTMetrics]
+    project_performance: list[PROJECTMetrics]
     action_queues: list[ActionQueue] = field(default_factory=list)
     engagement_reviews: list[EngagementReview] = field(default_factory=list)
 
@@ -70,7 +70,7 @@ class EngagementReview:
     engagement_id: str
     researcher_id: int | str
     researcher_email: str
-    ict_name: str
+    project_name: str
     interaction_count: int
     contribution_count: int
     latest_interaction_date: str

@@ -9,7 +9,7 @@ from src.models.dashboard_models import (
     ActionQueue,
     DashboardMetrics,
     EngagementReview,
-    ICTMetrics,
+    ProjectMetrics,
     InteractionHistoryItem,
 )
 
@@ -19,20 +19,20 @@ def _display_value(value: Any) -> str:
     return escape(str(value))
 
 
-def _render_ict_performance(ict_metrics: list[ICTMetrics]) -> str:
-    """Render ICT metrics as a comparison table."""
-    if not ict_metrics:
-        return '<p class="empty-message">No ICT metrics found.</p>'
+def _render_project_performance(project_metrics: list[ProjectMetrics]) -> str:
+    """Render PROJECT metrics as a comparison table."""
+    if not project_metrics:
+        return '<p class="empty-message">No PROJECT metrics found.</p>'
 
     rows = []
     for metrics in sorted(
-        ict_metrics,
+        project_metrics,
         key=lambda item: item.total_researchers,
         reverse=True,
     ):
         rows.append(
             "        <tr>\n"
-            f"          <td>{_display_value(metrics.ict_name)}</td>\n"
+            f"          <td>{_display_value(metrics.project_name)}</td>\n"
             f"          <td>{metrics.total_researchers}</td>\n"
             f"          <td>{metrics.new_researchers_this_month}</td>\n"
             f"          <td>{metrics.total_engagements}</td>\n"
@@ -46,7 +46,7 @@ def _render_ict_performance(ict_metrics: list[ICTMetrics]) -> str:
       <table>
         <thead>
           <tr>
-            <th>ICT</th>
+            <th>Project</th>
             <th title="Total Researchers">Researchers</th>
             <th title="New Researchers This Month">New</th>
             <th title="Total Engagements">Engagements</th>
@@ -94,7 +94,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
         <dl class="engagement-details">
           <div><dt>Engagement ID</dt><dd>{_display_value(review.engagement_id)}</dd></div>
           <div><dt>Researcher email</dt><dd>{_display_value(review.researcher_email)}</dd></div>
-          <div><dt>ICT</dt><dd>{_display_value(review.ict_name)}</dd></div>
+          <div><dt>Project</dt><dd>{_display_value(review.project_name)}</dd></div>
           <div><dt>Interaction Count</dt><dd>{review.interaction_count}</dd></div>
           <div><dt>Contribution Count</dt><dd>{review.contribution_count}</dd></div>
           <div><dt>Latest Interaction Date</dt><dd>{_display_value(review.latest_interaction_date)}</dd></div>
@@ -159,10 +159,10 @@ def _render_action_queue(queue: ActionQueue) -> str:
                     "Researcher ID:</strong> "
                     f"{_display_value(item.researcher_id)}</p>"
                 )
-            if item.ict_name is not None:
+            if item.project_name is not None:
                 parts.append(
-                    "      <p class=\"action-detail\"><strong>ICT:</strong> "
-                    f"{_display_value(item.ict_name)}</p>"
+                    "      <p class=\"action-detail\"><strong>Project:</strong> "
+                    f"{_display_value(item.project_name)}</p>"
                 )
             parts.append("    </article>")
         parts.append("  </div>")
@@ -443,8 +443,8 @@ def generate_html_dashboard(
     </section>
 
     <section>
-      <h2>ICT Performance</h2>
-      {_render_ict_performance(dashboard_metrics.ict_performance)}
+      <h2>Project Performance</h2>
+      {_render_project_performance(dashboard_metrics.project_performance)}
     </section>
 
     <section>

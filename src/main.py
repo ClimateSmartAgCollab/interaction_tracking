@@ -6,7 +6,7 @@ from src.reporting.dashboard_metrics import calculate_dashboard_metrics
 from src.reporting.dashboard_generator import generate_html_dashboard
 
 def main():
-    workbook = load_workbook("data/ICT_interactions_data.xlsx")
+    workbook = load_workbook("data/ICT_interactions_test_data_fake_data.xlsx")
 
     results = validate_workbook(workbook)
 

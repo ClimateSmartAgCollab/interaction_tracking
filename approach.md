@@ -119,7 +119,7 @@ engagement_dashboard.html
 
 The dashboard has two objectives:
 
-1. Provide a high-level view of engagement performance across ICTs.
+1. Provide a high-level view of engagement performance across Projects.
 2. Provide an action-oriented work queue that helps identify researchers who require outreach, follow-up, or recognition.
 
 ## The dashboard should not simply report historical activity. It should help determine where engagement efforts are succeeding and where future attention should be focused.
@@ -141,20 +141,20 @@ Fields:
 ```text
 researcher_id
 email
-ICT
+Project
 role
 organization
 date_added
 researcher_status
 ```
 
-The ICT field represents the researcher's primary ICT.
+The Project field represents the researcher's primary Project.
  
-Researchers associated with multiple ICTs may list
-multiple ICT values separated by semicolons.
+Researchers associated with multiple Projects may list
+multiple Project values separated by semicolons.
  
-Future versions may attribute ICT at the engagement level
-if cross-ICT participation becomes common.
+Future versions may attribute Project at the engagement level
+if cross-Project participation becomes common.
 
 ---
 
@@ -221,7 +221,7 @@ The code should read these sheets dynamically every run.
 Examples:
 
 ```text
-ict
+project
 role
 researcher_status
 interaction_channel
@@ -369,10 +369,10 @@ DashboardMetrics
 │ ├── contributions_this_month
 │ └── total_contributions
 │
-├── ict_performance : list[ICTMetrics]
+├── project_performance : list[PROJECTMetrics]
 │   │
-│   └── ICTMetrics
-│       ├── ict_name
+│   └── PROJECTMetrics
+│       ├── project_name
 │       ├── total_researchers
 │       ├── new_researchers_this_month
 │       ├── total_engagements
@@ -391,7 +391,7 @@ DashboardMetrics
                 ├── title
                 ├── description
                 ├── researcher_id
-                └── ict_name
+                └── project_name
 ```
 
 ---
@@ -571,7 +571,7 @@ Potential future rules:
 ```text
 Referred colleagues
 Multiple contributions
-Multiple ICT engagements
+Multiple Project engagements
 ```
 
 ---
@@ -668,7 +668,7 @@ Total Contributions
 
 ---
 
-### ICT Performance
+### Project Performance
 Table.
 ```text
 Total Researchers
@@ -687,11 +687,11 @@ Total Contributions
 The goal is to understand:
 
 ```text
-Which ICTs are growing?
+Which Projects are growing?
 
-Which ICTs are receiving engagement effort?
+Which Projects are receiving engagement effort?
 
-Which ICTs are generating contributions?
+Which Projects are generating contributions?
 ```
 
 ---
@@ -699,7 +699,7 @@ Which ICTs are generating contributions?
 ### Researcher Analytics
 Future development
 ```text
-Researchers by ICT
+Researchers by Project
 
 Researchers by Role
 
@@ -723,7 +723,7 @@ Interactions by Purpose
 
 Interactions per Engagement
 
-Engagements by ICT
+Engagements by Project
 ```
 
 ---
@@ -733,7 +733,7 @@ Future development
 ```text
 Contributions by Content Type
 
-Contributions by ICT
+Contributions by Project
 
 Contributions by Month
 
@@ -775,11 +775,11 @@ Average Interactions Before First Contribution
 
 Inbound Response Rate
 
-Response Rate by ICT
+Response Rate by Project
 
 Response Rate by Role
 
-Contribution Rate by ICT
+Contribution Rate by Project
 
 Contribution Rate by Role
 
@@ -797,11 +797,11 @@ How much effort is typically required to get a response?
 
 How much effort is typically required to obtain a contribution?
 
-Which ICTs are easiest to engage?
+Which Projects are easiest to engage?
 
 Which roles are most responsive?
 
-Which ICTs generate the strongest contribution outcomes?
+Which Projects generate the strongest contribution outcomes?
 
 How many interactions are required to support a typical engagement?
 

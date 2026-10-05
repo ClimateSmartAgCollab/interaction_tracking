@@ -9,7 +9,7 @@ from src.models.dashboard_models import (
     DashboardMetrics,
     EngagementMetrics,
     EngagementReview,
-    ICTMetrics,
+    ProjectMetrics,
     InteractionHistoryItem,
 )
 from src.models.workbook_models import WorkbookData
@@ -25,33 +25,26 @@ def _month_mask(
     return dates.dt.to_period("M").eq(month)
 
 
-def _ict_names(workbook: WorkbookData) -> list[str]:
-    """Return configured and observed ICT names in stable order."""
+def _project_names(workbook: WorkbookData) -> list[str]:
+    """Return configured PROJECT names from project list in stable order."""
     names: list[str] = []
 
     for list_name, values in workbook.lists.items():
-        if list_name.casefold() == "ict":
+        if list_name.casefold() == "project":
             names.extend(str(value) for value in values if not pd.isna(value))
             break
-
-    for value in workbook.researchers_df["ict"]:
-        if pd.isna(value) or (isinstance(value, str) and not value):
-            continue
-        name = str(value)
-        if name not in names:
-            names.append(name)
 
     return list(dict.fromkeys(names))
 
 
-def _researcher_ict_lookup(researchers: pd.DataFrame) -> pd.Series:
-    """Map each researcher ID to its ICT without duplicating activities."""
+def _researcher_project_lookup(researchers: pd.DataFrame) -> pd.Series:
+    """Map each researcher ID to its PROJECT without duplicating activities."""
     identified = researchers.dropna(subset=["researcher_id"])
     unique_researchers = identified.drop_duplicates(
         subset=["researcher_id"],
         keep="first",
     )
-    return unique_researchers.set_index("researcher_id")["ict"]
+    return unique_researchers.set_index("researcher_id")["project"]
 
 
 def _researcher_email_lookup(researchers: pd.DataFrame) -> pd.Series:
@@ -69,7 +62,7 @@ def _validate_columns(workbook: WorkbookData) -> None:
     required_columns = {
         "researchers": (
             workbook.researchers_df,
-            {"researcher_id", "email", "ict", "date_added"},
+            {"researcher_id", "email", "project", "date_added"},
         ),
         "interactions": (
             workbook.interactions_df,
@@ -117,7 +110,7 @@ def _date_text(value: object) -> str:
 
 def _build_engagement_reviews(
     workbook: WorkbookData,
-    ict_lookup: pd.Series,
+    project_lookup: pd.Series,
     email_lookup: pd.Series,
 ) -> list[EngagementReview]:
     """Build one review for each engagement in the interactions table."""
@@ -175,7 +168,25 @@ def _build_engagement_reviews(
             contributions["source_interaction_id"].isin(interaction_ids).sum()
         )
 
-        ict_name = ict_lookup.get(researcher_id, "")
+        engagement_projects = set(engagement["project"].dropna())
+
+        if engagement_projects:
+            project_name = next(iter(engagement_projects))
+        else:
+            researcher_project_membership = project_lookup.get(
+                researcher_id,
+                "",
+            )
+
+            project_list = [
+                project.strip()
+                for project in str(researcher_project_membership).split(";")
+                if project.strip()
+            ]
+
+            project_name = project_list[0] if len(project_list) == 1 else ""
+
+
         researcher_email = email_lookup.get(researcher_id, "")
         # The review combines engagement identity, outcomes, latest action,
         # and complete interaction history in one dashboard-ready object.
@@ -184,7 +195,7 @@ def _build_engagement_reviews(
                 engagement_id=_display_text(engagement_id),
                 researcher_id=researcher_id,
                 researcher_email=_display_text(researcher_email),
-                ict_name=_display_text(ict_name),
+                project_name=_display_text(project_name),
                 interaction_count=len(engagement),
                 contribution_count=contribution_count,
                 latest_interaction_date=_date_text(
@@ -236,46 +247,114 @@ def calculate_dashboard_metrics(
         total_contributions=len(contributions),
     )
 
-    researcher_icts = researchers["ict"]
-    ict_lookup = _researcher_ict_lookup(researchers)
+    researcher_projects = researchers["project"]
+    project_lookup = _researcher_project_lookup(researchers)
+    print(project_lookup)
+
+    # Resolve a single project for every interaction.
+    #
+    # Rules:
+    # - If interaction.project is populated, use that value.
+    # - If interaction.project is blank and the researcher belongs
+    #   to exactly one project, infer the project from the
+    #   researcher record.
+    # - If interaction.project is blank and the researcher belongs
+    #   to multiple projects, return None. Validation should
+    #   already flag this condition before metrics are calculated.
+    #
+    # The resulting series is used for project-level engagement
+    # and contribution metrics.
+    resolved_interaction_projects = []
+
+    for _, interaction in interactions.iterrows():
+
+        interaction_project = interaction.get("project")
+        researcher_id = interaction["researcher_id"]
+
+        if not pd.isna(interaction_project) and interaction_project != "":
+            resolved_interaction_projects.append(
+                interaction_project
+            )
+            continue
+
+        researcher_project_membership = project_lookup.get(
+            researcher_id,
+            "",
+        )
+
+        project_list = [
+            project.strip()
+            for project in str(researcher_project_membership).split(";")
+            if project.strip()
+        ]
+
+        if len(project_list) == 1:
+            resolved_interaction_projects.append(
+                project_list[0]
+            )
+        else:
+            resolved_interaction_projects.append(None)
+
+    interaction_projects = pd.Series(
+        resolved_interaction_projects,
+        index=interactions.index,
+    )
+
+    interaction_project_lookup = pd.Series(
+        interaction_projects.values,
+        index=interactions["interaction_id"],
+        )
+
+
     email_lookup = _researcher_email_lookup(researchers)
-    interaction_icts = interactions["researcher_id"].map(ict_lookup)
-    contribution_icts = contributions["researcher_id"].map(ict_lookup)
+    contribution_projects = contributions[
+        "source_interaction_id"
+    ].map(interaction_project_lookup)
     engagement_reviews = _build_engagement_reviews(
         workbook,
-        ict_lookup,
+        project_lookup,
         email_lookup,
     )
 
-    ict_performance = []
-    for ict_name in _ict_names(workbook):
-        ict_researchers = researcher_icts.eq(ict_name).fillna(False)
-        ict_interactions = interaction_icts.eq(ict_name).fillna(False)
-        ict_contributions = contribution_icts.eq(ict_name).fillna(False)
+    project_performance = []
+    for project_name in _project_names(workbook):
+        project_researchers = researcher_projects.apply(
+            lambda memberships: (
+                project_name in [
+                    project.strip()
+                    for project in str(memberships).split(";")
+                    if project.strip()
+                ]
+            )
+        )
 
-        ict_performance.append(
-            ICTMetrics(
-                ict_name=ict_name,
-                total_researchers=int(ict_researchers.sum()),
+        project_interactions = interaction_projects.eq(project_name).fillna(False)
+        project_contributions = contribution_projects.eq(project_name).fillna(False)
+
+
+        project_performance.append(
+            ProjectMetrics(
+                project_name=project_name,
+                total_researchers=int(project_researchers.sum()),
                 new_researchers_this_month=int(
-                    (ict_researchers & new_researchers).sum()
+                    (project_researchers & new_researchers).sum()
                 ),
                 total_engagements=int(
-                    interactions.loc[ict_interactions, "engagement_id"].nunique()
+                    interactions.loc[project_interactions, "engagement_id"].nunique()
                 ),
                 interactions_this_month=int(
-                    (ict_interactions & current_interactions).sum()
+                    (project_interactions & current_interactions).sum()
                 ),
                 contributions_this_month=int(
-                    (ict_contributions & current_contributions).sum()
+                    (project_contributions & current_contributions).sum()
                 ),
-                total_contributions=int(ict_contributions.sum()),
+                total_contributions=int(project_contributions.sum()),
             )
         )
 
     return DashboardMetrics(
         executive_summary=executive_summary,
-        ict_performance=ict_performance,
+        project_performance=project_performance,
         action_queues=[
             ActionQueue(
                 name="follow_up",
