@@ -1,5 +1,7 @@
 """Structured results for engagement dashboard reporting."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -47,9 +49,10 @@ class DashboardMetrics:
     """All calculated data required by the engagement dashboard."""
 
     executive_summary: EngagementMetrics
-    project_performance: list[PROJECTMetrics]
+    project_performance: list[ProjectMetrics]
     action_queues: list[ActionQueue] = field(default_factory=list)
     engagement_reviews: list[EngagementReview] = field(default_factory=list)
+    outstanding_actions: list[OutstandingAction] = field(default_factory=list)
 
 @dataclass(frozen=True)
 class InteractionHistoryItem:
@@ -78,3 +81,14 @@ class EngagementReview:
     latest_next_action: str
 
     interaction_history: list[InteractionHistoryItem]
+
+
+@dataclass(frozen=True)
+class OutstandingAction:
+    """Latest actionable next step for one engagement."""
+
+    days_since_last_interaction: int
+    project_name: str
+    researcher_email: str
+    next_action: str
+    engagement_id: str

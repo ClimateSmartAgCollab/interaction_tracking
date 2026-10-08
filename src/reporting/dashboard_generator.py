@@ -4,6 +4,7 @@ from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from src.models.dashboard_models import (
     ActionQueue,
@@ -11,6 +12,7 @@ from src.models.dashboard_models import (
     EngagementReview,
     ProjectMetrics,
     InteractionHistoryItem,
+    OutstandingAction,
 )
 
 
@@ -62,6 +64,46 @@ def _render_project_performance(project_metrics: list[ProjectMetrics]) -> str:
     </div>"""
 
 
+def _render_outstanding_actions(
+    outstanding_actions: list[OutstandingAction],
+) -> str:
+    """Render outstanding next actions as an oldest-first work queue."""
+    if not outstanding_actions:
+        return '<p class="empty-message">No outstanding actions found.</p>'
+
+    rows = []
+    for action in outstanding_actions:
+        engagement_fragment = quote(str(action.engagement_id), safe="")
+        rows.append(
+            "        <tr>\n"
+            f"          <td>{action.days_since_last_interaction}</td>\n"
+            f"          <td>{_display_value(action.project_name)}</td>\n"
+            f"          <td>{_display_value(action.researcher_email)}</td>\n"
+            f"          <td>{_display_value(action.next_action)}</td>\n"
+            "          <td>"
+            f'<a href="#{engagement_fragment}">'
+            f"{_display_value(action.engagement_id)}</a></td>\n"
+            "        </tr>"
+        )
+
+    return f"""<div class="table-container">
+      <table class="outstanding-actions-table">
+        <thead>
+          <tr>
+            <th>Days Since Last Interaction</th>
+            <th>Project</th>
+            <th>Researcher Email</th>
+            <th>Next Action</th>
+            <th>Engagement</th>
+          </tr>
+        </thead>
+        <tbody>
+{chr(10).join(rows)}
+        </tbody>
+      </table>
+    </div>"""
+
+
 def _render_interaction_history_item(
     item: InteractionHistoryItem,
 ) -> str:
@@ -89,7 +131,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
             "No interaction history found.</td></tr>"
         )
 
-    return f"""<article class="engagement-card">
+    return f"""<article id="{_display_value(review.engagement_id)}" class="engagement-card">
         <h3>Engagement {_display_value(review.engagement_id)}</h3>
         <dl class="engagement-details">
           <div><dt>Engagement ID</dt><dd>{_display_value(review.engagement_id)}</dd></div>
@@ -329,9 +371,34 @@ def generate_html_dashboard(
     th:not(:first-child) {{
       text-align: center;
     }}
+    .outstanding-actions-table th:nth-child(1) {{
+      width: 14%;
+    }}
+    .outstanding-actions-table th:nth-child(2) {{
+      width: 16%;
+    }}
+    .outstanding-actions-table th:nth-child(3) {{
+      width: 22%;
+    }}
+    .outstanding-actions-table th:nth-child(4) {{
+      width: 34%;
+    }}
+    .outstanding-actions-table th:nth-child(5) {{
+      width: 14%;
+    }}
+    .outstanding-actions-table td {{
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }}
+    .outstanding-actions-table td:first-child,
+    .outstanding-actions-table td:last-child {{
+      text-align: center;
+    }}
     .engagement-card {{
       margin-top: 16px;
       padding: 18px;
+      scroll-margin-top: 16px;
     }}
     .engagement-details {{
       display: grid;
@@ -446,6 +513,11 @@ def generate_html_dashboard(
     <section>
       <h2>Project Performance</h2>
       {_render_project_performance(dashboard_metrics.project_performance)}
+    </section>
+
+    <section>
+      <h2>Outstanding Actions</h2>
+      {_render_outstanding_actions(dashboard_metrics.outstanding_actions)}
     </section>
 
     <section>

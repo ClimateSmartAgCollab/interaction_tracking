@@ -11,6 +11,7 @@ from src.models.dashboard_models import (
     EngagementReview,
     ProjectMetrics,
     InteractionHistoryItem,
+    OutstandingAction,
 )
 from src.models.workbook_models import WorkbookData
 
@@ -228,6 +229,47 @@ def _build_engagement_reviews(
     )
 
 
+def _build_outstanding_actions(
+    engagement_reviews: list[EngagementReview],
+    reference_date: pd.Timestamp,
+) -> list[OutstandingAction]:
+    """Build the work queue from each engagement's latest interaction."""
+    actions = []
+
+    for review in engagement_reviews:
+        if not review.latest_next_action.strip():
+            continue
+
+        latest_interaction_date = pd.to_datetime(
+            review.latest_interaction_date,
+            errors="coerce",
+        )
+        if pd.isna(latest_interaction_date):
+            raise ValueError(
+                "Cannot calculate days since last interaction for engagement "
+                f"{review.engagement_id!r}: latest interaction date is missing "
+                "or invalid."
+            )
+
+        actions.append(
+            OutstandingAction(
+                days_since_last_interaction=(
+                    reference_date.date() - latest_interaction_date.date()
+                ).days,
+                project_name=review.project_name,
+                researcher_email=review.researcher_email,
+                next_action=review.latest_next_action,
+                engagement_id=review.engagement_id,
+            )
+        )
+
+    return sorted(
+        actions,
+        key=lambda action: action.days_since_last_interaction,
+        reverse=True,
+    )
+
+
 def calculate_dashboard_metrics(
     workbook: WorkbookData,
     reference_date: date | datetime | pd.Timestamp | None = None,
@@ -235,9 +277,10 @@ def calculate_dashboard_metrics(
     """Calculate all dashboard metrics without changing workbook data."""
     _validate_columns(workbook)
 
-    current_month = pd.Timestamp(
+    dashboard_reference_date = pd.Timestamp(
         reference_date if reference_date is not None else datetime.now()
-    ).to_period("M")
+    )
+    current_month = dashboard_reference_date.to_period("M")
 
     researchers = workbook.researchers_df
     interactions = workbook.interactions_df
@@ -329,6 +372,10 @@ def calculate_dashboard_metrics(
         email_lookup,
         role_lookup,
     )
+    outstanding_actions = _build_outstanding_actions(
+        engagement_reviews,
+        dashboard_reference_date,
+    )
 
     project_performance = []
     for project_name in _project_names(workbook):
@@ -377,4 +424,5 @@ def calculate_dashboard_metrics(
             )
         ],
         engagement_reviews=engagement_reviews,
+        outstanding_actions=outstanding_actions,
     )
