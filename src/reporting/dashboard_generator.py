@@ -15,6 +15,10 @@ from src.models.dashboard_models import (
     OutstandingAction,
 )
 
+_BACK_TO_TOP_LINK = (
+    '<p class="back-to-top"><a href="#top">↑ Back to Top</a></p>'
+)
+
 
 def _display_value(value: Any) -> str:
     """Convert a dashboard value to safe display text."""
@@ -160,6 +164,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
             </tbody>
           </table>
         </div>
+        {_BACK_TO_TOP_LINK}
       </article>"""
 
 
@@ -480,6 +485,18 @@ def generate_html_dashboard(
       color: #627d98;
       background: #ffffff;
     }}
+    .back-to-top {{
+      margin: 12px 0 0;
+      font-size: 0.9rem;
+      text-align: right;
+    }}
+    .back-to-top a {{
+      color: #3e7cb1;
+      text-decoration: none;
+    }}
+    .back-to-top a:hover {{
+      text-decoration: underline;
+    }}
     @media (max-width: 600px) {{
       body {{
         padding: 24px 14px 48px;
@@ -497,6 +514,7 @@ def generate_html_dashboard(
   </style>
 </head>
 <body>
+  <a id="top"></a>
   <header>
     <h1>Researcher Engagement Dashboard</h1>
     <p class="generated-at">Generated: {generated_at}</p>
@@ -513,11 +531,13 @@ def generate_html_dashboard(
     <section>
       <h2>Project Performance</h2>
       {_render_project_performance(dashboard_metrics.project_performance)}
+      {_BACK_TO_TOP_LINK}
     </section>
 
     <section>
       <h2>Outstanding Actions</h2>
       {_render_outstanding_actions(dashboard_metrics.outstanding_actions)}
+      {_BACK_TO_TOP_LINK}
     </section>
 
     <section>
