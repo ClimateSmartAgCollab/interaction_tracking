@@ -44,12 +44,24 @@ class ActionQueue:
     items: list[ActionItem] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class ContributionTypeMetrics:
+    """Contribution totals and project counts for one content type."""
+
+    content_type: str
+    total_contributions: int
+    project_counts: dict[str, int]
+
+
 @dataclass
 class DashboardMetrics:
     """All calculated data required by the engagement dashboard."""
 
     executive_summary: EngagementMetrics
     project_performance: list[ProjectMetrics]
+    contribution_breakdown: list[ContributionTypeMetrics] = field(
+        default_factory=list
+    )
     action_queues: list[ActionQueue] = field(default_factory=list)
     engagement_reviews: list[EngagementReview] = field(default_factory=list)
     outstanding_actions: list[OutstandingAction] = field(default_factory=list)

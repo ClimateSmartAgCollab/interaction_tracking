@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from src.models.dashboard_models import (
     ActionQueue,
+    ContributionTypeMetrics,
     DashboardMetrics,
     EngagementReview,
     ProjectMetrics,
@@ -59,6 +60,57 @@ def _render_project_performance(project_metrics: list[ProjectMetrics]) -> str:
             <th title="Interactions This Month">Interactions</th>
             <th title="Contributions This Month">New Contributions</th>
             <th title="Total Contributions">Total Contributions</th>
+          </tr>
+        </thead>
+        <tbody>
+{chr(10).join(rows)}
+        </tbody>
+      </table>
+    </div>"""
+
+
+def _render_contribution_breakdown(
+    contribution_metrics: list[ContributionTypeMetrics],
+) -> str:
+    """Render contribution totals by content type and project."""
+    if not contribution_metrics:
+        return '<p class="empty-message">No contribution data found.</p>'
+
+    project_names = list(
+        dict.fromkeys(
+            project_name
+            for metrics in contribution_metrics
+            for project_name in metrics.project_counts
+        )
+    )
+    project_headers = "\n".join(
+        f"            <th>{_display_value(project_name)}</th>"
+        for project_name in project_names
+    )
+
+    rows = []
+    for metrics in contribution_metrics:
+        project_cells = "\n".join(
+            "          <td>"
+            f"{metrics.project_counts.get(project_name, 0) or '-'}"
+            "</td>"
+            for project_name in project_names
+        )
+        rows.append(
+            "        <tr>\n"
+            f"          <td>{_display_value(metrics.content_type)}</td>\n"
+            f"          <td>{metrics.total_contributions}</td>\n"
+            f"{project_cells}\n"
+            "        </tr>"
+        )
+
+    return f"""<div class="table-container">
+      <table class="contribution-breakdown-table">
+        <thead>
+          <tr>
+            <th>Content Type</th>
+            <th>Total</th>
+{project_headers}
           </tr>
         </thead>
         <tbody>
@@ -376,6 +428,20 @@ def generate_html_dashboard(
     th:not(:first-child) {{
       text-align: center;
     }}
+    .contribution-breakdown-table {{
+      min-width: 640px;
+      table-layout: auto;
+    }}
+    .contribution-breakdown-table th:first-child,
+    .contribution-breakdown-table td:first-child {{
+      width: 30%;
+      min-width: 200px;
+    }}
+    .contribution-breakdown-table th:not(:first-child),
+    .contribution-breakdown-table td:not(:first-child) {{
+      min-width: 90px;
+      text-align: center;
+    }}
     .outstanding-actions-table th:nth-child(1) {{
       width: 14%;
     }}
@@ -531,6 +597,12 @@ def generate_html_dashboard(
     <section>
       <h2>Project Performance</h2>
       {_render_project_performance(dashboard_metrics.project_performance)}
+      {_BACK_TO_TOP_LINK}
+    </section>
+
+    <section>
+      <h2>Contribution Breakdown</h2>
+      {_render_contribution_breakdown(dashboard_metrics.contribution_breakdown)}
       {_BACK_TO_TOP_LINK}
     </section>
 

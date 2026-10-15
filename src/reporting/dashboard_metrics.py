@@ -6,6 +6,7 @@ import pandas as pd
 
 from src.models.dashboard_models import (
     ActionQueue,
+    ContributionTypeMetrics,
     DashboardMetrics,
     EngagementMetrics,
     EngagementReview,
@@ -87,11 +88,17 @@ def _validate_columns(workbook: WorkbookData) -> None:
                 "interaction_purpose",
                 "interaction_summary",
                 "next_action",
+                "project",
             },
         ),
         "contributions": (
             workbook.contributions_df,
-            {"researcher_id", "source_interaction_id", "date_received"},
+            {
+                "researcher_id",
+                "source_interaction_id",
+                "date_received",
+                "content_type",
+            },
         ),
     }
 
@@ -117,6 +124,60 @@ def _date_text(value: object) -> str:
     if pd.isna(value):
         return ""
     return pd.Timestamp(value).strftime("%Y-%m-%d")
+
+
+def _build_contribution_breakdown(
+    workbook: WorkbookData,
+    project_names: list[str],
+) -> list[ContributionTypeMetrics]:
+    """Build contribution totals by content type and source project."""
+    interactions = workbook.interactions_df
+    contributions = workbook.contributions_df
+
+    # The interaction lookup connects each source interaction ID directly to
+    # the project recorded on that interaction.
+    interaction_project_lookup = (
+        interactions.dropna(subset=["interaction_id"])
+        .drop_duplicates(subset=["interaction_id"], keep="first")
+        .set_index("interaction_id")["project"]
+    )
+
+    # Contribution attribution uses only the interaction that generated the
+    # contribution; researcher project membership is intentionally excluded.
+    attributed_contributions = contributions.assign(
+        _project=contributions["source_interaction_id"].map(
+            interaction_project_lookup
+        )
+    )
+    breakdown: list[ContributionTypeMetrics] = []
+
+    # Content type aggregation creates one dashboard metric for every content
+    # type represented in the contribution data.
+    for content_type, content_contributions in attributed_contributions.groupby(
+        "content_type",
+        sort=False,
+        dropna=True,
+    ):
+        # Project aggregation starts with the full controlled vocabulary so
+        # configured projects with no contributions remain visible as zeroes.
+        project_counts = dict.fromkeys(project_names, 0)
+        for project, count in content_contributions["_project"].value_counts().items():
+            project_name = str(project)
+            project_counts[project_name] = int(count)
+
+        breakdown.append(
+            ContributionTypeMetrics(
+                content_type=str(content_type),
+                total_contributions=len(content_contributions),
+                project_counts=project_counts,
+            )
+        )
+
+    return sorted(
+        breakdown,
+        key=lambda metrics: metrics.total_contributions,
+        reverse=True,
+    )
 
 
 def _build_engagement_reviews(
@@ -376,6 +437,10 @@ def calculate_dashboard_metrics(
         engagement_reviews,
         dashboard_reference_date,
     )
+    contribution_breakdown = _build_contribution_breakdown(
+        workbook,
+        _project_names(workbook),
+    )
 
     project_performance = []
     for project_name in _project_names(workbook):
@@ -416,6 +481,7 @@ def calculate_dashboard_metrics(
     return DashboardMetrics(
         executive_summary=executive_summary,
         project_performance=project_performance,
+        contribution_breakdown=contribution_breakdown,
         action_queues=[
             ActionQueue(
                 name="follow_up",
