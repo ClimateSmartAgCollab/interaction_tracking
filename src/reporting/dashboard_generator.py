@@ -206,26 +206,31 @@ def _render_engagement_review(review: EngagementReview) -> str:
             <span class="summary-label">Project</span>
             <span class="summary-value">{_display_value(review.project_name)}</span>
           </span>
-          <span class="summary-item researcher-summary">
-            <span class="summary-label">Researcher Email</span>
-            <span class="summary-value">{_display_value(review.researcher_email)}</span>
-          </span>
           <span class="summary-item">
             <span class="summary-label">Latest Interaction Date</span>
             <span class="summary-value">{_display_value(review.latest_interaction_date)}</span>
-          </span>
-          <span class="summary-item latest-action-summary">
-            <span class="summary-label">Latest Next Action</span>
-            <span class="summary-value">{_display_value(review.latest_next_action)}</span>
-          </span>
-          <span class="summary-item">
-            <span class="summary-label">Interaction Activity</span>
-            <span class="summary-value">{interaction_activity}</span>
           </span>
           <span class="summary-item">
             <span class="summary-label">Contribution Count</span>
             <span class="summary-value">{review.contribution_count}</span>
           </span>
+          <span class="summary-item latest-action-summary">
+            <span class="summary-label">Latest Next Action</span>
+            <span class="summary-value">{_display_value(review.latest_next_action)}</span>
+          </span>
+          <span class="summary-item researcher-summary">
+            <span class="summary-label">Researcher Email</span>
+            <span class="summary-value">{_display_value(review.researcher_email)}</span>
+          </span>
+          
+          
+          <span class="summary-item">
+            <span class="summary-label">Interaction Activity</span>
+            <span class="summary-value">{interaction_activity}</span>
+          </span>
+          
+          
+          
         </summary>
         <div class="engagement-expanded">
           <div class="researcher-details">
