@@ -19,6 +19,9 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
     print("Running missing value checks...")
     validate_missing_values(workbook, results)
 
+    print("Running date checks...")
+    validate_dates(workbook, results)
+
     print("Running controlled vocabulary checks...")
     validate_controlled_vocabularies(workbook, results)
 
@@ -365,6 +368,110 @@ def validate_missing_values(
 
     print("Missing value validation complete.")
     print(f"Missing values found: {missing_value_count}")
+
+
+# ==================================================
+# DATE VALIDATION
+# ==================================================
+
+
+def validate_dates(
+    workbook: WorkbookData,
+    results: ValidationResults,
+) -> None:
+    """Create review items for dates that may be data entry errors."""
+    import pandas as pd
+
+    # Date validation identifies values that could distort reports and metrics.
+    date_checks = [
+        (
+            "researchers",
+            workbook.researchers_df,
+            results.researchers,
+            "researcher_id",
+            "date_added",
+        ),
+        (
+            "interactions",
+            workbook.interactions_df,
+            results.interactions,
+            "interaction_id",
+            "interaction_date",
+        ),
+        (
+            "contributions",
+            workbook.contributions_df,
+            results.contributions,
+            "contribution_id",
+            "date_received",
+        ),
+    ]
+    today = pd.Timestamp.today().date()
+    future_date_count = 0
+
+    print("Checking dates...")
+
+    for (
+        table_name,
+        dataframe,
+        review_items,
+        identifier_column,
+        field_name,
+    ) in date_checks:
+        if field_name not in dataframe.columns:
+            continue
+
+        for excel_row, (row_index, row) in enumerate(
+            dataframe.iterrows(),
+            start=2,
+        ):
+            current_value = row[field_name]
+            if pd.isna(current_value) or current_value == "":
+                continue
+
+            # Invalid dates are skipped so a separate rule can handle them.
+            try:
+                parsed_date = pd.to_datetime(current_value, errors="coerce")
+            except (TypeError, ValueError, OverflowError):
+                continue
+
+            if pd.isna(parsed_date):
+                continue
+
+            # A date is considered future-dated only when it is after today.
+            if parsed_date.date() <= today:
+                continue
+
+            record_id = row_index
+            if identifier_column in dataframe.columns:
+                identifier_value = row[identifier_column]
+                if not pd.isna(identifier_value) and identifier_value != "":
+                    record_id = identifier_value
+
+            # Generate a warning ReviewItem instead of changing workbook data.
+            review_items.append(
+                ReviewItem(
+                    title=(
+                        f"{table_name.removesuffix('s').title()} "
+                        f"{record_id} has a future date"
+                    ),
+                    category="future_date",
+                    priority="warning",
+                    table_name=table_name,
+                    record_id=record_id,
+                    excel_row=excel_row,
+                    field_name=field_name,
+                    current_value=current_value,
+                    message=f"{field_name} is in the future",
+                    suggested_action=(
+                        "Verify and correct the date if it was entered "
+                        "incorrectly"
+                    ),
+                )
+            )
+            future_date_count += 1
+
+    print(f"Future dates found: {future_date_count}")
 
 
 # ==================================================
