@@ -232,6 +232,13 @@ def _build_engagement_reviews(
         ]
 
         latest_interaction = ordered_interactions.iloc[-1]
+        first_interaction = ordered_interactions.iloc[0]
+
+        engagement_duration_days = (
+            pd.Timestamp(latest_interaction["interaction_date"])
+            - pd.Timestamp(first_interaction["interaction_date"])
+        ).days
+
         researcher_id = latest_interaction["researcher_id"]
         interaction_ids = set(engagement["interaction_id"].dropna())
 
@@ -279,6 +286,7 @@ def _build_engagement_reviews(
                 latest_next_action=_display_text(
                     latest_interaction["next_action"]
                 ),
+                engagement_duration_days=engagement_duration_days,
                 interaction_history=interaction_history,
             )
         )

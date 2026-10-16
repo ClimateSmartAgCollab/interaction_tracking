@@ -91,6 +91,7 @@ class EngagementReview:
     contribution_count: int
     latest_interaction_date: str
     latest_next_action: str
+    engagement_duration_days: int
 
     interaction_history: list[InteractionHistoryItem]
 
