@@ -176,7 +176,7 @@ def _render_interaction_history_item(
 
 
 def _render_engagement_review(review: EngagementReview) -> str:
-    """Render one engagement review card."""
+    """Render one expandable engagement review card."""
     history_rows = "\n".join(
         _render_interaction_history_item(item)
         for item in review.interaction_history
@@ -187,18 +187,53 @@ def _render_engagement_review(review: EngagementReview) -> str:
             "No interaction history found.</td></tr>"
         )
 
-    return f"""<article id="{_display_value(review.engagement_id)}" class="engagement-card">
-        <h3>Engagement {_display_value(review.engagement_id)}</h3>
-        <dl class="engagement-details">
-          <div><dt>Engagement ID</dt><dd>{_display_value(review.engagement_id)}</dd></div>
-          <div><dt>Researcher email</dt><dd>{_display_value(review.researcher_email)}</dd></div>
-          <div><dt>Role</dt><dd>{_display_value(review.role)}</dd></div>
-          <div><dt>Project</dt><dd>{_display_value(review.project_name)}</dd></div>
-          <div><dt>Interaction Count</dt><dd>{review.interaction_count}</dd></div>
-          <div><dt>Contribution Count</dt><dd>{review.contribution_count}</dd></div>
-          <div><dt>Latest Interaction Date</dt><dd>{_display_value(review.latest_interaction_date)}</dd></div>
-          <div class="latest-action"><dt>Latest Next Action</dt><dd>{_display_value(review.latest_next_action)}</dd></div>
-        </dl>
+    interaction_label = (
+        "interaction" if review.interaction_count == 1 else "interactions"
+    )
+    day_label = "day" if review.engagement_duration_days == 1 else "days"
+    interaction_activity = (
+        f"{review.interaction_count} {interaction_label} over "
+        f"{review.engagement_duration_days} {day_label}"
+    )
+
+    return f"""<details id="{_display_value(review.engagement_id)}" class="engagement-card">
+        <summary class="engagement-summary">
+          <span class="engagement-title">
+            <span class="summary-label">Engagement ID</span>
+            <strong>{_display_value(review.engagement_id)}</strong>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Project</span>
+            <span class="summary-value">{_display_value(review.project_name)}</span>
+          </span>
+          <span class="summary-item researcher-summary">
+            <span class="summary-label">Researcher Email</span>
+            <span class="summary-value">{_display_value(review.researcher_email)}</span>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Latest Interaction Date</span>
+            <span class="summary-value">{_display_value(review.latest_interaction_date)}</span>
+          </span>
+          <span class="summary-item latest-action-summary">
+            <span class="summary-label">Latest Next Action</span>
+            <span class="summary-value">{_display_value(review.latest_next_action)}</span>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Interaction Activity</span>
+            <span class="summary-value">{interaction_activity}</span>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Contribution Count</span>
+            <span class="summary-value">{review.contribution_count}</span>
+          </span>
+        </summary>
+        <div class="engagement-expanded">
+          <div class="researcher-details">
+            <h4>Researcher Details</h4>
+            <dl>
+              <div><dt>Role</dt><dd>{_display_value(review.role)}</dd></div>
+            </dl>
+          </div>
         <h4>Interaction History</h4>
         <div class="history-table-container">
           <table class="history-table">
@@ -217,7 +252,8 @@ def _render_engagement_review(review: EngagementReview) -> str:
           </table>
         </div>
         {_BACK_TO_TOP_LINK}
-      </article>"""
+        </div>
+      </details>"""
 
 
 def _render_engagement_reviews(
@@ -468,30 +504,87 @@ def generate_html_dashboard(
     }}
     .engagement-card {{
       margin-top: 16px;
-      padding: 18px;
       scroll-margin-top: 16px;
+      overflow: hidden;
     }}
-    .engagement-details {{
+    .engagement-card[open] {{
+      box-shadow: 0 3px 10px rgba(16, 42, 67, 0.12);
+    }}
+    .engagement-summary {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px 18px;
-      margin: 0 0 20px;
+      grid-template-columns: minmax(130px, 0.75fr) repeat(3, minmax(150px, 1fr));
+      gap: 14px 18px;
+      padding: 16px 44px 16px 18px;
+      position: relative;
+      cursor: pointer;
+      list-style: none;
     }}
-    .engagement-details div {{
+    .engagement-summary::-webkit-details-marker {{
+      display: none;
+    }}
+    .engagement-summary::after {{
+      content: "›";
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      color: #486581;
+      font-size: 1.7rem;
+      line-height: 1;
+      transform: translateY(-50%) rotate(90deg);
+      transition: transform 0.15s ease;
+    }}
+    .engagement-card[open] > .engagement-summary {{
+      border-bottom: 1px solid #d9e2ec;
+      background: #f8fafc;
+    }}
+    .engagement-card[open] > .engagement-summary::after {{
+      transform: translateY(-50%) rotate(-90deg);
+    }}
+    .engagement-summary:hover {{
+      background: #f8fafc;
+    }}
+    .engagement-summary:focus-visible {{
+      outline: 3px solid #9fb3c8;
+      outline-offset: -3px;
+    }}
+    .engagement-title,
+    .summary-item {{
+      display: flex;
+      flex-direction: column;
       min-width: 0;
     }}
-    .engagement-details dt {{
+    .engagement-title strong {{
+      color: #102a43;
+      font-size: 1.08rem;
+      overflow-wrap: anywhere;
+    }}
+    .summary-label,
+    .researcher-details dt {{
       color: #627d98;
       font-size: 0.82rem;
       font-weight: bold;
     }}
-    .engagement-details dd {{
-      margin: 2px 0 0;
+    .summary-value {{
+      margin-top: 2px;
       overflow-wrap: anywhere;
       color: #102a43;
     }}
-    .engagement-details .latest-action {{
+    .latest-action-summary {{
       grid-column: span 2;
+    }}
+    .engagement-expanded {{
+      padding: 18px;
+    }}
+    .researcher-details {{
+      margin-bottom: 18px;
+    }}
+    .researcher-details dl {{
+      margin: 0;
+    }}
+    .researcher-details dd {{
+      margin: 2px 0 0;
+      color: #102a43;
+      overflow-wrap: anywhere;
     }}
     .history-table-container {{
       overflow-x: auto;
@@ -563,6 +656,11 @@ def generate_html_dashboard(
     .back-to-top a:hover {{
       text-decoration: underline;
     }}
+    @media (max-width: 900px) {{
+      .engagement-summary {{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }}
+    }}
     @media (max-width: 600px) {{
       body {{
         padding: 24px 14px 48px;
@@ -573,8 +671,14 @@ def generate_html_dashboard(
       .kpi-grid {{
         grid-template-columns: 1fr;
       }}
-      .engagement-details .latest-action {{
-        grid-column: span 1;
+      .engagement-summary {{
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }}
+      .engagement-title,
+      .latest-action-summary {{
+        grid-column: auto;
+        grid-row: auto;
       }}
     }}
   </style>
