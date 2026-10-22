@@ -111,6 +111,11 @@ def validate_required_columns(
         "date_added",
         "researcher_status",
     ]
+    engagements_required_columns = [
+        "engagement_id",
+        "engagement_status",
+        "title",
+    ]
     interactions_required_columns = [
         "interaction_id",
         "engagement_id",
@@ -146,6 +151,29 @@ def validate_required_columns(
                     category="missing_column",
                     priority="error",
                     table_name="researchers",
+                    record_id=None,
+                    excel_row=1,
+                    field_name=column_name,
+                    current_value=None,
+                    message=f"Required column '{column_name}' is missing",
+                    suggested_action=f"Add column '{column_name}'",
+                )
+            )
+            missing_column_count += 1
+
+    # Check the engagements table for every required column.
+    print("Checking required columns for engagements...")
+    for column_name in engagements_required_columns:
+        if column_name not in workbook.engagements_df.columns:
+            results.engagements.append(
+                ReviewItem(
+                    title=(
+                        "Engagements sheet missing "
+                        f"{column_name.replace('_', ' ').title()} column"
+                    ),
+                    category="missing_column",
+                    priority="error",
+                    table_name="engagements",
                     record_id=None,
                     excel_row=1,
                     field_name=column_name,
@@ -225,6 +253,11 @@ def validate_missing_values(
         "researcher_status",
         "project",
     ]
+    engagements_required_fields = [
+        "engagement_id",
+        "engagement_status",
+        "title",
+    ]
     interactions_required_fields = [
         "interaction_id",
         "engagement_id",
@@ -274,6 +307,42 @@ def validate_missing_values(
                         category="missing_value",
                         priority="error",
                         table_name="researchers",
+                        record_id=record_id,
+                        excel_row=excel_row,
+                        field_name=field_name,
+                        current_value=None,
+                        message=f"{field_name} is missing",
+                        suggested_action=f"Populate {field_name} field",
+                    )
+                )
+                missing_value_count += 1
+
+    # Validate required engagement fields row by row.
+    print("Checking missing values for engagements...")
+    for excel_row, (row_index, row) in enumerate(
+        workbook.engagements_df.iterrows(),
+        start=2,
+    ):
+        record_id = row_index
+        if "engagement_id" in workbook.engagements_df.columns:
+            engagement_id = row["engagement_id"]
+            if not is_missing(engagement_id):
+                record_id = engagement_id
+
+        for field_name in engagements_required_fields:
+            if field_name not in workbook.engagements_df.columns:
+                continue
+
+            if is_missing(row[field_name]):
+                field_label = field_name.replace("_", " ").title()
+                results.engagements.append(
+                    ReviewItem(
+                        title=(
+                            f"Engagement {record_id} missing {field_label}"
+                        ),
+                        category="missing_value",
+                        priority="error",
+                        table_name="engagements",
                         record_id=record_id,
                         excel_row=excel_row,
                         field_name=field_name,
@@ -544,6 +613,12 @@ def validate_controlled_vocabularies(
             "researcher_id",
         ),
         (
+            "engagements",
+            workbook.engagements_df,
+            results.engagements,
+            "engagement_id",
+        ),
+        (
             "interactions",
             workbook.interactions_df,
             results.interactions,
@@ -707,6 +782,12 @@ def validate_relationships(
     relationships = [
         {
             "source_table": "interactions",
+            "source_column": "engagement_id",
+            "target_table": "engagements",
+            "target_column": "engagement_id",
+        },
+        {
+            "source_table": "interactions",
             "source_column": "researcher_id",
             "target_table": "researchers",
             "target_column": "researcher_id",
@@ -735,6 +816,11 @@ def validate_relationships(
             "dataframe": workbook.interactions_df,
             "review_items": results.interactions,
             "identifier_column": "interaction_id",
+        },
+        "engagements": {
+            "dataframe": workbook.engagements_df,
+            "review_items": results.engagements,
+            "identifier_column": "engagement_id",
         },
         "contributions": {
             "dataframe": workbook.contributions_df,
@@ -824,6 +910,51 @@ def validate_relationships(
                 )
             )
             relationship_errors_found += 1
+
+    # Engagements may be created before their interactions are recorded.
+    # Report these unused records as warnings rather than errors.
+    if (
+        "engagement_id" in workbook.engagements_df.columns
+        and "engagement_id" in workbook.interactions_df.columns
+    ):
+        referenced_engagement_ids = {
+            engagement_id
+            for engagement_id in workbook.interactions_df["engagement_id"]
+            if not is_missing(engagement_id)
+        }
+
+        for excel_row, (row_index, row) in enumerate(
+            workbook.engagements_df.iterrows(),
+            start=2,
+        ):
+            engagement_id = row["engagement_id"]
+            if (
+                is_missing(engagement_id)
+                or engagement_id in referenced_engagement_ids
+            ):
+                continue
+
+            results.engagements.append(
+                ReviewItem(
+                    title=(
+                        f"Engagement {engagement_id} has no interactions"
+                    ),
+                    category="missing_relationship",
+                    priority="warning",
+                    table_name="engagements",
+                    record_id=engagement_id,
+                    excel_row=excel_row,
+                    field_name="engagement_id",
+                    current_value=engagement_id,
+                    message=(
+                        "No interactions reference this engagement."
+                    ),
+                    suggested_action=(
+                        "Verify the engagement is still needed or record "
+                        "interactions associated with it."
+                    ),
+                )
+            )
 
     # Validate that interaction projects belong to the
     # associated researcher's project memberships.
@@ -1021,6 +1152,10 @@ def validate_duplicates(
             "column": "email",
         },
         {
+            "table": "engagements",
+            "column": "engagement_id",
+        },
+        {
             "table": "interactions",
             "column": "interaction_id",
         },
@@ -1035,6 +1170,11 @@ def validate_duplicates(
             "dataframe": workbook.researchers_df,
             "review_items": results.researchers,
             "identifier_column": "researcher_id",
+        },
+        "engagements": {
+            "dataframe": workbook.engagements_df,
+            "review_items": results.engagements,
+            "identifier_column": "engagement_id",
         },
         "interactions": {
             "dataframe": workbook.interactions_df,
@@ -1140,6 +1280,7 @@ def calculate_completeness_metrics(
 
     tables = [
         ("researchers", workbook.researchers_df),
+        ("engagements", workbook.engagements_df),
         ("interactions", workbook.interactions_df),
         ("contributions", workbook.contributions_df),
     ]

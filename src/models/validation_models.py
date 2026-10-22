@@ -37,6 +37,7 @@ class ValidationResults:
 
     structural: list[ReviewItem] = field(default_factory=list)
     researchers: list[ReviewItem] = field(default_factory=list)
+    engagements: list[ReviewItem] = field(default_factory=list)
     interactions: list[ReviewItem] = field(default_factory=list)
     contributions: list[ReviewItem] = field(default_factory=list)
     recommendations: list[Recommendation] = field(default_factory=list)

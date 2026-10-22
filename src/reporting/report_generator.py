@@ -112,7 +112,12 @@ def _render_completeness_metrics(
     """Render completeness percentages grouped by workbook table."""
     html_parts = ["<h2>COMPLETENESS METRICS</h2>"]
 
-    for table_name in ["researchers", "interactions", "contributions"]:
+    for table_name in [
+        "researchers",
+        "engagements",
+        "interactions",
+        "contributions",
+    ]:
         table_metrics = completeness_metrics.get(table_name, {})
         html_parts.append(f"<h3>{_display_label(table_name)}</h3>")
 
@@ -162,9 +167,11 @@ def generate_html_validation_report(
     executive_summary = [
         ("Number of Structural Errors", len(validation.structural)),
         ("Number of Researchers", len(workbook.researchers_df)),
+        ("Number of Engagements", len(workbook.engagements_df)),
         ("Number of Interactions", len(workbook.interactions_df)),
         ("Number of Contributions", len(workbook.contributions_df)),
         ("Number of Researcher Review Items", len(validation.researchers)),
+        ("Number of Engagement Review Items", len(validation.engagements)),
         ("Number of Interaction Review Items", len(validation.interactions)),
         (
             "Number of Contribution Review Items",
@@ -352,6 +359,7 @@ def generate_html_validation_report(
       <h2>DATA CORRECTIONS</h2>
       {_render_review_items("Workbook Structure", validation.structural)}
       {_render_review_items("Researchers", validation.researchers)}
+      {_render_review_items("Engagements", validation.engagements)}
       {_render_review_items("Interactions", validation.interactions)}
       {_render_review_items("Contributions", validation.contributions)}
     </section>
