@@ -9,6 +9,7 @@ from src.models.workbook_models import WorkbookData
 
 REQUIRED_SHEETS = [
     "researchers",
+    "engagements",
     "interactions",
     "contributions",
     "lists",
@@ -118,6 +119,10 @@ def load_workbook(excel_path: str) -> WorkbookData:
         "researchers",
         ["date_added"],
     )
+    engagements_df = load_table(
+        excel_path,
+        "engagements",
+    )
     interactions_df = load_table(
         excel_path,
         "interactions",
@@ -134,6 +139,7 @@ def load_workbook(excel_path: str) -> WorkbookData:
 
     workbook_data = WorkbookData(
         researchers_df=researchers_df,
+        engagements_df=engagements_df,
         interactions_df=interactions_df,
         contributions_df=contributions_df,
         lists=lists,
@@ -143,6 +149,7 @@ def load_workbook(excel_path: str) -> WorkbookData:
     print(
         "Workbook load complete: "
         f"{len(researchers_df)} researchers, "
+        f"{len(engagements_df)} engagements, "
         f"{len(interactions_df)} interactions, "
         f"{len(contributions_df)} contributions, "
         f"{len(lists)} lists, "
