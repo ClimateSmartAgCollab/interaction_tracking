@@ -460,6 +460,7 @@ def calculate_dashboard_metrics(
                 total_engagements=int(
                     interactions.loc[project_interactions, "engagement_id"].nunique()
                 ),
+                total_interactions=int(project_interactions.sum()),
                 interactions_this_month=int(
                     (project_interactions & current_interactions).sum()
                 ),
@@ -473,6 +474,7 @@ def calculate_dashboard_metrics(
     return DashboardMetrics(
         executive_summary=executive_summary,
         project_performance=project_performance,
+        reporting_period_label=current_month.strftime("%b %Y"),
         contribution_breakdown=contribution_breakdown,
         action_queues=[
             ActionQueue(

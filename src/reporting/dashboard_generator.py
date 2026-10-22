@@ -25,11 +25,15 @@ def _display_value(value: Any) -> str:
     return escape(str(value))
 
 
-def _render_project_performance(project_metrics: list[ProjectMetrics]) -> str:
+def _render_project_performance(
+    project_metrics: list[ProjectMetrics],
+    reporting_period_label: str,
+) -> str:
     """Render PROJECT metrics as a comparison table."""
     if not project_metrics:
         return '<p class="empty-message">No PROJECT metrics found.</p>'
 
+    reporting_period = _display_value(reporting_period_label)
     rows = []
     for metrics in sorted(
         project_metrics,
@@ -42,23 +46,34 @@ def _render_project_performance(project_metrics: list[ProjectMetrics]) -> str:
             f"          <td>{metrics.total_researchers}</td>\n"
             f"          <td>{metrics.new_researchers_this_month}</td>\n"
             f"          <td>{metrics.total_engagements}</td>\n"
+            f"          <td>{metrics.total_interactions}</td>\n"
             f"          <td>{metrics.interactions_this_month}</td>\n"
-            f"          <td>{metrics.contributions_this_month}</td>\n"
             f"          <td>{metrics.total_contributions}</td>\n"
+            f"          <td>{metrics.contributions_this_month}</td>\n"
             "        </tr>"
         )
 
     return f"""<div class="table-container">
-      <table>
+      <table class="project-performance-table">
         <thead>
           <tr>
             <th>Project</th>
             <th title="Total Researchers">Researchers</th>
-            <th title="New Researchers This Month">New</th>
+            <th title="Researchers Added during {reporting_period}">
+              Researchers Added
+              <span class="reporting-period">({reporting_period})</span>
+            </th>
             <th title="Total Engagements">Engagements</th>
-            <th title="Interactions This Month">Interactions</th>
-            <th title="Contributions This Month">New Contributions</th>
+            <th title="Total Interactions">Total Interactions</th>
+            <th title="Interactions during {reporting_period}">
+              Interactions
+              <span class="reporting-period">({reporting_period})</span>
+            </th>
             <th title="Total Contributions">Total Contributions</th>
+            <th title="Contributions during {reporting_period}">
+              Contributions
+              <span class="reporting-period">({reporting_period})</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -504,6 +519,9 @@ def generate_html_dashboard(
       white-space: normal;
       overflow-wrap: break-word;
     }}
+    .reporting-period {{
+      display: block;
+    }}
     th:first-child,
     td:first-child {{
       width: 22%;
@@ -819,7 +837,10 @@ def generate_html_dashboard(
 
     <section>
       <h2>Project Performance</h2>
-      {_render_project_performance(dashboard_metrics.project_performance)}
+      {_render_project_performance(
+          dashboard_metrics.project_performance,
+          dashboard_metrics.reporting_period_label,
+      )}
       {_BACK_TO_TOP_LINK}
     </section>
 

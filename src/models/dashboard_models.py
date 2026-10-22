@@ -23,6 +23,7 @@ class ProjectMetrics(EngagementMetrics):
     """Engagement metrics for one PROJECT."""
 
     project_name: str
+    total_interactions: int
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ class DashboardMetrics:
 
     executive_summary: EngagementMetrics
     project_performance: list[ProjectMetrics]
+    reporting_period_label: str
     contribution_breakdown: list[ContributionTypeMetrics] = field(
         default_factory=list
     )
