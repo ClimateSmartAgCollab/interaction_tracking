@@ -13,7 +13,6 @@ from src.models.dashboard_models import (
     EngagementReview,
     ProjectMetrics,
     InteractionHistoryItem,
-    OutstandingAction,
 )
 
 _BACK_TO_TOP_LINK = (
@@ -120,44 +119,85 @@ def _render_contribution_breakdown(
     </div>"""
 
 
-def _render_outstanding_actions(
-    outstanding_actions: list[OutstandingAction],
-) -> str:
-    """Render outstanding next actions as an oldest-first work queue."""
-    if not outstanding_actions:
-        return '<p class="empty-message">No outstanding actions found.</p>'
+def _engagement_anchor(engagement_id: str) -> str:
+    """Return a safe, stable in-page anchor for an engagement."""
+    return f"engagement-{quote(str(engagement_id), safe='')}"
 
-    rows = []
-    for action in outstanding_actions:
-        engagement_fragment = quote(str(action.engagement_id), safe="")
-        rows.append(
-            "        <tr>\n"
-            f"          <td>{action.days_since_last_interaction}</td>\n"
-            f"          <td>{_display_value(action.project_name)}</td>\n"
-            f"          <td>{_display_value(action.researcher_email)}</td>\n"
-            f"          <td>{_display_value(action.next_action)}</td>\n"
-            "          <td>"
-            f'<a href="#{engagement_fragment}">'
-            f"{_display_value(action.engagement_id)}</a></td>\n"
-            "        </tr>"
+
+def _interaction_activity(review: EngagementReview) -> str:
+    """Return the compact interaction count and duration label."""
+    interaction_label = (
+        "interaction" if review.interaction_count == 1 else "interactions"
+    )
+    day_label = "day" if review.engagement_duration_days == 1 else "days"
+    return (
+        f"{review.interaction_count} {interaction_label} over "
+        f"{review.engagement_duration_days} {day_label}"
+    )
+
+
+def _render_engagement_review_summaries(
+    engagement_reviews: list[EngagementReview],
+) -> str:
+    """Render collapsible navigation tables grouped by engagement status."""
+    if not engagement_reviews:
+        return '<p class="empty-message">No engagement reviews found.</p>'
+
+    status_groups: dict[str, list[EngagementReview]] = {}
+    for review in engagement_reviews:
+        # Keep unexpected future statuses as their own groups. A fallback label
+        # prevents missing workbook values from creating an unlabeled section.
+        status_name = review.engagement_status.strip() or "Unspecified"
+        status_groups.setdefault(status_name, []).append(review)
+
+    groups = []
+    for status_name, reviews in status_groups.items():
+        rows = []
+        for review in reviews:
+            anchor = _engagement_anchor(review.engagement_id)
+            title = review.engagement_title or review.engagement_id
+            values = (
+                title,
+                ", ".join(review.projects),
+                str(review.participant_count),
+                _interaction_activity(review),
+                review.latest_interaction_date,
+            )
+            cells = "\n".join(
+                "              <td>"
+                f'<a href="#{_display_value(anchor)}">'
+                f"{_display_value(value)}</a></td>"
+                for value in values
+            )
+            rows.append(
+                '            <tr class="engagement-summary-row">\n'
+                f"{cells}\n"
+                "            </tr>"
+            )
+
+        groups.append(
+            f"""      <details class="status-group">
+        <summary>{_display_value(status_name)} ({len(reviews)})</summary>
+        <div class="table-container">
+          <table class="engagement-navigation-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Projects</th>
+                <th>Researchers</th>
+                <th>Interaction Activity</th>
+                <th>Latest Activity</th>
+              </tr>
+            </thead>
+            <tbody>
+{chr(10).join(rows)}
+            </tbody>
+          </table>
+        </div>
+      </details>"""
         )
 
-    return f"""<div class="table-container">
-      <table class="outstanding-actions-table">
-        <thead>
-          <tr>
-            <th>Days Since Last Interaction</th>
-            <th>Project</th>
-            <th>Researcher Email</th>
-            <th>Next Action</th>
-            <th>Engagement</th>
-          </tr>
-        </thead>
-        <tbody>
-{chr(10).join(rows)}
-        </tbody>
-      </table>
-    </div>"""
+    return "\n".join(groups)
 
 
 def _render_interaction_history_item(
@@ -187,28 +227,47 @@ def _render_engagement_review(review: EngagementReview) -> str:
             "No interaction history found.</td></tr>"
         )
 
-    interaction_label = (
-        "interaction" if review.interaction_count == 1 else "interactions"
+    project_names = ", ".join(review.projects)
+    participant_rows = "\n".join(
+        "                <tr>\n"
+        f"                  <td>{_display_value(participant.researcher_email)}</td>\n"
+        f"                  <td>{_display_value(participant.role)}</td>\n"
+        "                </tr>"
+        for participant in review.participants
     )
-    day_label = "day" if review.engagement_duration_days == 1 else "days"
-    interaction_activity = (
-        f"{review.interaction_count} {interaction_label} over "
-        f"{review.engagement_duration_days} {day_label}"
-    )
+    if not participant_rows:
+        participant_rows = (
+            '                <tr><td colspan="2" class="history-empty">'
+            "No participants found.</td></tr>"
+        )
 
-    return f"""<details id="{_display_value(review.engagement_id)}" class="engagement-card">
+    title = review.engagement_title or review.engagement_id
+    status = review.engagement_status or "Unspecified"
+    engagement_anchor = _engagement_anchor(review.engagement_id)
+
+    return f"""<details id="{_display_value(engagement_anchor)}" class="engagement-card">
         <summary class="engagement-summary">
           <span class="engagement-title">
-            <span class="summary-label">Engagement ID</span>
-            <strong>{_display_value(review.engagement_id)}</strong>
+            <strong>{_display_value(title)}</strong>
+            <span class="engagement-meta">
+              Status: {_display_value(status)} | {_display_value(review.engagement_id)}
+            </span>
           </span>
           <span class="summary-item">
-            <span class="summary-label">Project</span>
-            <span class="summary-value">{_display_value(review.project_name)}</span>
+            <span class="summary-label">Projects</span>
+            <span class="summary-value">{_display_value(project_names)}</span>
           </span>
           <span class="summary-item">
-            <span class="summary-label">Latest Interaction Date</span>
+            <span class="summary-label">Researchers</span>
+            <span class="summary-value">{review.participant_count}</span>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Latest Activity</span>
             <span class="summary-value">{_display_value(review.latest_interaction_date)}</span>
+          </span>
+          <span class="summary-item">
+            <span class="summary-label">Interaction Activity</span>
+            <span class="summary-value">{_display_value(_interaction_activity(review))}</span>
           </span>
           <span class="summary-item">
             <span class="summary-label">Contribution Count</span>
@@ -218,45 +277,42 @@ def _render_engagement_review(review: EngagementReview) -> str:
             <span class="summary-label">Latest Next Action</span>
             <span class="summary-value">{_display_value(review.latest_next_action)}</span>
           </span>
-          <span class="summary-item researcher-summary">
-            <span class="summary-label">Researcher Email</span>
-            <span class="summary-value">{_display_value(review.researcher_email)}</span>
-          </span>
-          
-          
-          <span class="summary-item">
-            <span class="summary-label">Interaction Activity</span>
-            <span class="summary-value">{interaction_activity}</span>
-          </span>
-          
-          
-          
         </summary>
         <div class="engagement-expanded">
-          <div class="researcher-details">
-            <h4>Researcher Details</h4>
-            <dl>
-              <div><dt>Role</dt><dd>{_display_value(review.role)}</dd></div>
-            </dl>
+          <div class="participant-details">
+            <h4>Participants</h4>
+            <div class="participant-table-container">
+              <table class="participant-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+{participant_rows}
+                </tbody>
+              </table>
+            </div>
           </div>
-        <h4>Interaction History</h4>
-        <div class="history-table-container">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Direction</th>
-                <th>Channel</th>
-                <th>Purpose</th>
-                <th>Next Action</th>
-              </tr>
-            </thead>
-            <tbody>
+          <h4>Interaction History</h4>
+          <div class="history-table-container">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Direction</th>
+                  <th>Channel</th>
+                  <th>Purpose</th>
+                  <th>Next Action</th>
+                </tr>
+              </thead>
+              <tbody>
 {history_rows}
-            </tbody>
-          </table>
-        </div>
-        {_BACK_TO_TOP_LINK}
+              </tbody>
+            </table>
+          </div>
+          {_BACK_TO_TOP_LINK}
         </div>
       </details>"""
 
@@ -483,29 +539,67 @@ def generate_html_dashboard(
       min-width: 90px;
       text-align: center;
     }}
-    .outstanding-actions-table th:nth-child(1) {{
-      width: 14%;
+    .status-group {{
+      margin-top: 12px;
+      border: 1px solid #bcccdc;
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
     }}
-    .outstanding-actions-table th:nth-child(2) {{
-      width: 16%;
+    .status-group > summary {{
+      padding: 12px 16px;
+      color: #243b53;
+      background: #e8eef3;
+      cursor: pointer;
+      font-weight: bold;
     }}
-    .outstanding-actions-table th:nth-child(3) {{
-      width: 22%;
+    .status-group[open] > summary {{
+      border-bottom: 1px solid #bcccdc;
     }}
-    .outstanding-actions-table th:nth-child(4) {{
-      width: 34%;
+    .status-group .table-container {{
+      border: 0;
+      border-radius: 0;
     }}
-    .outstanding-actions-table th:nth-child(5) {{
-      width: 14%;
+    .engagement-navigation-table {{
+      min-width: 760px;
     }}
-    .outstanding-actions-table td {{
+    .engagement-navigation-table th:nth-child(1) {{
+      width: 28%;
+    }}
+    .engagement-navigation-table th:nth-child(2) {{
+      width: 18%;
+    }}
+    .engagement-navigation-table th:nth-child(3) {{
+      width: 12%;
+    }}
+    .engagement-navigation-table th:nth-child(4) {{
+      width: 24%;
+    }}
+    .engagement-navigation-table th:nth-child(5) {{
+      width: 18%;
+    }}
+    .engagement-navigation-table td {{
+      padding: 0;
       text-align: left;
       white-space: normal;
       overflow-wrap: anywhere;
     }}
-    .outstanding-actions-table td:first-child,
-    .outstanding-actions-table td:last-child {{
+    .engagement-navigation-table td:not(:first-child) {{
       text-align: center;
+    }}
+    .engagement-navigation-table a {{
+      display: block;
+      min-height: 42px;
+      padding: 10px 8px;
+      color: #102a43;
+      text-decoration: none;
+    }}
+    .engagement-navigation-table tr:hover td {{
+      background: #edf4f8;
+    }}
+    .engagement-navigation-table tr:focus-within {{
+      outline: 2px solid #9fb3c8;
+      outline-offset: -2px;
     }}
     .engagement-card {{
       margin-top: 16px;
@@ -517,7 +611,7 @@ def generate_html_dashboard(
     }}
     .engagement-summary {{
       display: grid;
-      grid-template-columns: minmax(130px, 0.75fr) repeat(3, minmax(150px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px 18px;
       padding: 16px 44px 16px 18px;
       position: relative;
@@ -558,13 +652,21 @@ def generate_html_dashboard(
       flex-direction: column;
       min-width: 0;
     }}
+    .engagement-title {{
+      grid-column: span 2;
+    }}
     .engagement-title strong {{
       color: #102a43;
       font-size: 1.08rem;
       overflow-wrap: anywhere;
     }}
-    .summary-label,
-    .researcher-details dt {{
+    .engagement-meta {{
+      margin-top: 3px;
+      color: #627d98;
+      font-size: 0.84rem;
+      font-weight: bold;
+    }}
+    .summary-label {{
       color: #627d98;
       font-size: 0.82rem;
       font-weight: bold;
@@ -574,22 +676,34 @@ def generate_html_dashboard(
       overflow-wrap: anywhere;
       color: #102a43;
     }}
-    .latest-action-summary {{
-      grid-column: span 2;
-    }}
     .engagement-expanded {{
       padding: 18px;
     }}
-    .researcher-details {{
+    .participant-details {{
       margin-bottom: 18px;
     }}
-    .researcher-details dl {{
-      margin: 0;
+    .participant-table-container {{
+      max-width: 720px;
+      overflow-x: auto;
+      border: 1px solid #d9e2ec;
+      border-radius: 6px;
     }}
-    .researcher-details dd {{
-      margin: 2px 0 0;
-      color: #102a43;
+    .participant-table {{
+      min-width: 520px;
+      font-size: 0.9rem;
+    }}
+    .participant-table th,
+    .participant-table td {{
+      padding: 8px;
+      text-align: left;
+      white-space: normal;
       overflow-wrap: anywhere;
+    }}
+    .participant-table th:first-child {{
+      width: 60%;
+    }}
+    .participant-table th:nth-child(2) {{
+      width: 40%;
     }}
     .history-table-container {{
       overflow-x: auto;
@@ -716,13 +830,13 @@ def generate_html_dashboard(
     </section>
 
     <section>
-      <h2>Outstanding Actions</h2>
-      {_render_outstanding_actions(dashboard_metrics.outstanding_actions)}
+      <h2>Engagement Review Summaries</h2>
+      {_render_engagement_review_summaries(dashboard_metrics.engagement_reviews)}
       {_BACK_TO_TOP_LINK}
     </section>
 
     <section>
-      <h2>Engagement Review</h2>
+      <h2>Engagement Reviews</h2>
       {_render_engagement_reviews(dashboard_metrics.engagement_reviews)}
     </section>
 

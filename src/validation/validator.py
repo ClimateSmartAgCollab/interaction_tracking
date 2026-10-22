@@ -6,6 +6,7 @@ from src.models.validation_models import (
     ValidationResults,
 )
 from src.models.workbook_models import WorkbookData
+from src.validation.project_parser import parse_projects
 
 
 def validate_workbook(workbook: WorkbookData) -> ValidationResults:
@@ -37,9 +38,6 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
 
     print("Running relationship checks...")
     validate_relationships(workbook, results)
-
-    print("Running engagement consistency checks...")
-    validate_engagement_consistency(workbook, results)
 
     print("Running duplicate checks...")
     validate_duplicates(workbook, results)
@@ -407,11 +405,7 @@ def validate_missing_values(
                 "",
             )
 
-            project_list = [
-                p.strip()
-                for p in str(researcher_projects).split(";")
-                if p.strip()
-            ]
+            project_list = parse_projects(researcher_projects)
 
             if (
                 len(project_list) > 1
@@ -705,31 +699,19 @@ def validate_controlled_vocabularies(
                 if is_empty(current_value):
                     continue
 
-                # Support multi-project memberships stored as:
-                # ProjectA;ProjectB;ProjectC
-                if list_name == "project":
-                    project_values = [
-                        project.strip()
-                        for project in str(current_value).split(";")
-                        if project.strip()
-                    ]
+                # Project fields may contain one or more memberships.
+                values_to_validate = (
+                    parse_projects(current_value)
+                    if list_name == "project"
+                    else [current_value]
+                )
+                invalid_values = [
+                    value
+                    for value in values_to_validate
+                    if value not in valid_values
+                ]
 
-                    invalid_projects = [
-                        project
-                        for project in project_values
-                        if project not in valid_values
-                    ]
-
-                    if not invalid_projects:
-                        continue
-
-                    current_value = ", ".join(invalid_projects)
-
-                else:
-                    if current_value in valid_values:
-                        continue
-
-                if current_value in valid_values:
+                if not invalid_values:
                     continue
 
                 record_id = row_index
@@ -738,28 +720,31 @@ def validate_controlled_vocabularies(
                     if not is_empty(identifier_value):
                         record_id = identifier_value
 
-                review_items.append(
-                    ReviewItem(
-                        title=(
-                            f"{table_name.removesuffix('s').title()} "
-                            f"{record_id} {list_name.replace('_', ' ')} "
-                            f"\"{current_value}\" not in "
-                            f"{list_name.replace('_', ' ').title()} list"
-                        ),
-                        category="invalid_value",
-                        priority="error",
-                        table_name=table_name,
-                        record_id=record_id,
-                        excel_row=excel_row,
-                        field_name=list_name,
-                        current_value=current_value,
-                        message=invalid_value_message,
-                        suggested_action=(
-                            f"Select a valid {list_name} value"
-                        ),
+                # Report each invalid value separately. For projects, this
+                # identifies the exact membership that needs correction.
+                for invalid_value in invalid_values:
+                    review_items.append(
+                        ReviewItem(
+                            title=(
+                                f"{table_name.removesuffix('s').title()} "
+                                f"{record_id} {list_name.replace('_', ' ')} "
+                                f"\"{invalid_value}\" not in "
+                                f"{list_name.replace('_', ' ').title()} list"
+                            ),
+                            category="invalid_value",
+                            priority="error",
+                            table_name=table_name,
+                            record_id=record_id,
+                            excel_row=excel_row,
+                            field_name=list_name,
+                            current_value=invalid_value,
+                            message=invalid_value_message,
+                            suggested_action=(
+                                f"Select a valid {list_name} value"
+                            ),
+                        )
                     )
-                )
-                invalid_value_count += 1
+                    invalid_value_count += 1
 
     print("Controlled vocabulary validation complete.")
     print(f"Invalid lists found: {invalid_list_count}")
@@ -988,13 +973,15 @@ def validate_relationships(
         if researcher_id not in researcher_project_lookup:
             continue
 
-        project_list = [
-            project.strip()
-            for project in str(researcher_projects).split(";")
-            if project.strip()
+        researcher_project_list = parse_projects(researcher_projects)
+        interaction_projects = parse_projects(interaction_project)
+        invalid_projects = [
+            project
+            for project in interaction_projects
+            if project not in researcher_project_list
         ]
 
-        if interaction_project in project_list:
+        if not invalid_projects:
             continue
 
         interaction_id = row_index
@@ -1003,130 +990,37 @@ def validate_relationships(
             if not is_missing(interaction_value):
                 interaction_id = interaction_value
 
-        results.interactions.append(
-            ReviewItem(
-                title=(
-                    f"Interaction {interaction_id} project "
-                    f"'{interaction_project}' is not assigned "
-                    f"to researcher {researcher_id}"
-                ),
-                category="invalid_relationship",
-                priority="error",
-                table_name="interactions",
-                record_id=interaction_id,
-                excel_row=excel_row,
-                field_name="project",
-                current_value=interaction_project,
-                message=(
-                    "Interaction project is not one of the "
-                    "researcher's project memberships"
-                ),
-                suggested_action=(
-                    "Select one of the researcher's projects: "
-                    f"{', '.join(project_list)}"
-                ),
+        for invalid_project in invalid_projects:
+            results.interactions.append(
+                ReviewItem(
+                    title=(
+                        f"Interaction {interaction_id} project "
+                        f"'{invalid_project}' is not assigned "
+                        f"to researcher {researcher_id}"
+                    ),
+                    category="invalid_relationship",
+                    priority="error",
+                    table_name="interactions",
+                    record_id=interaction_id,
+                    excel_row=excel_row,
+                    field_name="project",
+                    current_value=invalid_project,
+                    message=(
+                        "Interaction project is not one of the "
+                        "researcher's project memberships"
+                    ),
+                    suggested_action=(
+                        "Select from the researcher's projects: "
+                        f"{', '.join(researcher_project_list)}"
+                    ),
+                )
             )
-        )
-
-        relationship_errors_found += 1
+            relationship_errors_found += 1
 
     print("Relationship validation complete.")
     print(
         f"Invalid relationships found: {relationship_errors_found}"
     )
-
-# ==================================================
-# ENGAGEMENT CONSISTENCY
-# ==================================================
-
-def validate_engagement_consistency(
-    workbook: WorkbookData,
-    results: ValidationResults,
-) -> None:
-    """Validate that all interactions in an engagement use the same project."""
-    import pandas as pd
-    engagement_consistency_errors_count = 0
-
-    # Check each engagement independently.
-    for engagement_id, engagement_rows in (
-        workbook.interactions_df.groupby("engagement_id")
-    ):
-        # Collect non-empty project values.
-        projects = {
-            project
-            for project in engagement_rows["project"]
-            if not pd.isna(project) and project != ""
-            }
-
-        # More than one project in the same engagement is invalid.
-        if len(projects) > 1:
-                print(
-                    f"ERROR triggered for engagement {engagement_id}"
-                )
-                results.interactions.append(
-                    ReviewItem(
-                        title=(
-                            f"Engagement {engagement_id} has multiple projects"
-                        ),
-                        category="invalid_value",
-                        priority="error",
-                        table_name="interactions",
-                        record_id=engagement_id,
-                        excel_row=None,
-                        field_name="project",
-                        current_value=", ".join(sorted(projects)),
-                        message=(
-                            "All interactions within an engagement must use the same project"
-                        ),
-                        suggested_action=(
-                            f"Update the project for all interactions within engagement {engagement_id} to one of the following: {', '.join(projects)}"
-                        ),
-                    )
-                )
-                engagement_consistency_errors_count += 1
-
-        # Collect researcher IDs for this engagement.
-        researcher_ids = {
-            researcher_id
-            for researcher_id in engagement_rows["researcher_id"]
-            if not pd.isna(researcher_id) and researcher_id != ""
-        }
-
-        # More than one researcher in the same engagement is invalid.
-        if len(researcher_ids) > 1:
-
-            results.interactions.append(
-                ReviewItem(
-                    title=(
-                        f"Engagement {engagement_id} has multiple researchers"
-                    ),
-                    category="invalid_value",
-                    priority="error",
-                    table_name="interactions",
-                    record_id=engagement_id,
-                    excel_row=None,
-                    field_name="researcher_id",
-                    current_value=", ".join(
-                        str(researcher_id)
-                        for researcher_id in sorted(researcher_ids)
-                    ),
-                    message=(
-                        "All interactions within an engagement "
-                        "must reference the same researcher"
-                    ),
-                    suggested_action=(
-                        "Review researcher assignments and select "
-                        "a single researcher for this engagement and"
-                        "assign a new engagement to the other researchers"
-                    ),
-                )
-            )
-
-            engagement_consistency_errors_count += 1
-
-
-    print("Engagement consistency validation complete.")
-    print(f"Engagement consistency errors found: {engagement_consistency_errors_count}")
 
 
 # ==================================================

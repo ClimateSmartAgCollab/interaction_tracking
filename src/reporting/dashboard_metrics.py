@@ -9,10 +9,10 @@ from src.models.dashboard_models import (
     ContributionTypeMetrics,
     DashboardMetrics,
     EngagementMetrics,
+    EngagementParticipant,
     EngagementReview,
-    ProjectMetrics,
     InteractionHistoryItem,
-    OutstandingAction,
+    ProjectMetrics,
 )
 from src.models.workbook_models import WorkbookData
 
@@ -76,6 +76,10 @@ def _validate_columns(workbook: WorkbookData) -> None:
             workbook.researchers_df,
             {"researcher_id", "email", "role", "project", "date_added"},
         ),
+        "engagements": (
+            workbook.engagements_df,
+            {"engagement_id", "engagement_status", "title"},
+        ),
         "interactions": (
             workbook.interactions_df,
             {
@@ -124,6 +128,21 @@ def _date_text(value: object) -> str:
     if pd.isna(value):
         return ""
     return pd.Timestamp(value).strftime("%Y-%m-%d")
+
+
+def _engagement_projects(project_values: pd.Series) -> list[str]:
+    """Return the unique projects recorded on an engagement's interactions."""
+    projects: list[str] = []
+
+    # A single interaction cell may contain multiple semicolon-delimited
+    # projects, so each cell must be split before duplicates are removed.
+    for value in project_values.dropna():
+        for project in str(value).split(";"):
+            project_name = project.strip()
+            if project_name and project_name not in projects:
+                projects.append(project_name)
+
+    return projects
 
 
 def _build_contribution_breakdown(
@@ -182,14 +201,20 @@ def _build_contribution_breakdown(
 
 def _build_engagement_reviews(
     workbook: WorkbookData,
-    project_lookup: pd.Series,
     email_lookup: pd.Series,
     role_lookup: pd.Series,
 ) -> list[EngagementReview]:
     """Build one review for each engagement in the interactions table."""
+    engagements = workbook.engagements_df
     interactions = workbook.interactions_df
     contributions = workbook.contributions_df
     reviews: list[EngagementReview] = []
+
+    engagement_metadata = (
+        engagements.dropna(subset=["engagement_id"])
+        .drop_duplicates(subset=["engagement_id"], keep="first")
+        .set_index("engagement_id")
+    )
 
     # Engagement grouping keeps every related interaction together and uses
     # engagement_id as the review's sole grouping key.
@@ -239,7 +264,6 @@ def _build_engagement_reviews(
             - pd.Timestamp(first_interaction["interaction_date"])
         ).days
 
-        researcher_id = latest_interaction["researcher_id"]
         interaction_ids = set(engagement["interaction_id"].dropna())
 
         # Contributions are counted when their source interaction belongs to
@@ -248,36 +272,42 @@ def _build_engagement_reviews(
             contributions["source_interaction_id"].isin(interaction_ids).sum()
         )
 
-        engagement_projects = set(engagement["project"].dropna())
+        projects = _engagement_projects(engagement["project"])
 
-        if engagement_projects:
-            project_name = next(iter(engagement_projects))
-        else:
-            researcher_project_membership = project_lookup.get(
-                researcher_id,
-                "",
+        # Researchers are kept in first-seen order and represented once per
+        # engagement, even when they appear on multiple interactions.
+        participant_ids = list(
+            dict.fromkeys(engagement["researcher_id"].dropna().tolist())
+        )
+        participants = [
+            EngagementParticipant(
+                researcher_id=researcher_id,
+                researcher_email=_display_text(
+                    email_lookup.get(researcher_id, "")
+                ),
+                role=_display_text(role_lookup.get(researcher_id, "")),
             )
+            for researcher_id in participant_ids
+        ]
 
-            project_list = [
-                project.strip()
-                for project in str(researcher_project_membership).split(";")
-                if project.strip()
-            ]
+        if engagement_id in engagement_metadata.index:
+            metadata = engagement_metadata.loc[engagement_id]
+            engagement_title = _display_text(metadata["title"])
+            engagement_status = _display_text(metadata["engagement_status"])
+        else:
+            engagement_title = ""
+            engagement_status = ""
 
-            project_name = project_list[0] if len(project_list) == 1 else ""
-
-
-        researcher_email = email_lookup.get(researcher_id, "")
-        researcher_role = role_lookup.get(researcher_id, "")
         # The review combines engagement identity, outcomes, latest action,
         # and complete interaction history in one dashboard-ready object.
         reviews.append(
             EngagementReview(
                 engagement_id=_display_text(engagement_id),
-                researcher_id=researcher_id,
-                researcher_email=_display_text(researcher_email),
-                role=_display_text(researcher_role),
-                project_name=_display_text(project_name),
+                engagement_title=engagement_title,
+                engagement_status=engagement_status,
+                projects=projects,
+                participant_count=len(participants),
+                participants=participants,
                 interaction_count=len(engagement),
                 contribution_count=contribution_count,
                 latest_interaction_date=_date_text(
@@ -294,47 +324,6 @@ def _build_engagement_reviews(
     return sorted(
         reviews,
         key=lambda review: review.latest_interaction_date,
-        reverse=True,
-    )
-
-
-def _build_outstanding_actions(
-    engagement_reviews: list[EngagementReview],
-    reference_date: pd.Timestamp,
-) -> list[OutstandingAction]:
-    """Build the work queue from each engagement's latest interaction."""
-    actions = []
-
-    for review in engagement_reviews:
-        if not review.latest_next_action.strip():
-            continue
-
-        latest_interaction_date = pd.to_datetime(
-            review.latest_interaction_date,
-            errors="coerce",
-        )
-        if pd.isna(latest_interaction_date):
-            raise ValueError(
-                "Cannot calculate days since last interaction for engagement "
-                f"{review.engagement_id!r}: latest interaction date is missing "
-                "or invalid."
-            )
-
-        actions.append(
-            OutstandingAction(
-                days_since_last_interaction=(
-                    reference_date.date() - latest_interaction_date.date()
-                ).days,
-                project_name=review.project_name,
-                researcher_email=review.researcher_email,
-                next_action=review.latest_next_action,
-                engagement_id=review.engagement_id,
-            )
-        )
-
-    return sorted(
-        actions,
-        key=lambda action: action.days_since_last_interaction,
         reverse=True,
     )
 
@@ -437,13 +426,8 @@ def calculate_dashboard_metrics(
     ].map(interaction_project_lookup)
     engagement_reviews = _build_engagement_reviews(
         workbook,
-        project_lookup,
         email_lookup,
         role_lookup,
-    )
-    outstanding_actions = _build_outstanding_actions(
-        engagement_reviews,
-        dashboard_reference_date,
     )
     contribution_breakdown = _build_contribution_breakdown(
         workbook,
@@ -498,5 +482,4 @@ def calculate_dashboard_metrics(
             )
         ],
         engagement_reviews=engagement_reviews,
-        outstanding_actions=outstanding_actions,
     )

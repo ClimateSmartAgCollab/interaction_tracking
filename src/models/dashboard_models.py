@@ -64,7 +64,6 @@ class DashboardMetrics:
     )
     action_queues: list[ActionQueue] = field(default_factory=list)
     engagement_reviews: list[EngagementReview] = field(default_factory=list)
-    outstanding_actions: list[OutstandingAction] = field(default_factory=list)
 
 @dataclass(frozen=True)
 class InteractionHistoryItem:
@@ -79,14 +78,24 @@ class InteractionHistoryItem:
 
 
 @dataclass(frozen=True)
+class EngagementParticipant:
+    """One researcher participating in an engagement."""
+
+    researcher_id: int | str
+    researcher_email: str
+    role: str
+
+
+@dataclass(frozen=True)
 class EngagementReview:
     """Summary of a single engagement."""
 
     engagement_id: str
-    researcher_id: int | str
-    researcher_email: str
-    role: str
-    project_name: str
+    engagement_title: str
+    engagement_status: str
+    projects: list[str]
+    participant_count: int
+    participants: list[EngagementParticipant]
     interaction_count: int
     contribution_count: int
     latest_interaction_date: str
@@ -94,14 +103,3 @@ class EngagementReview:
     engagement_duration_days: int
 
     interaction_history: list[InteractionHistoryItem]
-
-
-@dataclass(frozen=True)
-class OutstandingAction:
-    """Latest actionable next step for one engagement."""
-
-    days_since_last_interaction: int
-    project_name: str
-    researcher_email: str
-    next_action: str
-    engagement_id: str
