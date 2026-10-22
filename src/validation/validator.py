@@ -13,6 +13,16 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
     print("Starting validation...")
     results = ValidationResults()
 
+    print("Running required worksheet checks...")
+    validate_required_worksheets(workbook, results)
+
+    if not workbook.is_structurally_valid:
+        print(
+            "Workbook contains structural errors. "
+            "Remaining validation skipped."
+        )
+        return results
+
     print("Running required column checks...")
     validate_required_columns(workbook, results)
 
@@ -44,6 +54,41 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
 
     print("Validation complete.")
     return results
+
+
+# ==================================================
+# REQUIRED WORKSHEETS
+# ==================================================
+
+
+def validate_required_worksheets(
+    workbook: WorkbookData,
+    results: ValidationResults,
+) -> None:
+    """Create review items for required worksheets that are unavailable."""
+    for sheet_name in workbook.missing_sheets:
+        display_name = sheet_name.replace("_", " ").title()
+        results.structural.append(
+            ReviewItem(
+                title=f"Missing required worksheet: {display_name}",
+                category="missing_worksheet",
+                priority="error",
+                table_name=sheet_name,
+                record_id=None,
+                excel_row=1,
+                message=(
+                    f"The required '{display_name}' worksheet is missing."
+                ),
+                suggested_action=(
+                    f"Add a worksheet named '{sheet_name}' to the workbook."
+                ),
+            )
+        )
+
+    print(
+        "Required worksheet validation complete. "
+        f"Missing worksheets found: {len(workbook.missing_sheets)}"
+    )
 
 
 # ==================================================

@@ -21,25 +21,29 @@ def save_run_history(
 
     print(f"Saving run history to: {run_dir}")
 
-    # Save workbook snapshots
-    workbook.researchers_df.to_parquet(
-        run_dir / "researchers.parquet",
-        index=False,
-    )
+    # Save snapshots only when the source worksheets were loaded.
+    if workbook.is_structurally_valid:
+        workbook.researchers_df.to_parquet(
+            run_dir / "researchers.parquet",
+            index=False,
+        )
 
-    workbook.interactions_df.to_parquet(
-        run_dir / "interactions.parquet",
-        index=False,
-    )
+        workbook.interactions_df.to_parquet(
+            run_dir / "interactions.parquet",
+            index=False,
+        )
 
-    workbook.contributions_df.to_parquet(
-        run_dir / "contributions.parquet",
-        index=False,
-    )
+        workbook.contributions_df.to_parquet(
+            run_dir / "contributions.parquet",
+            index=False,
+        )
 
     # Save run metadata
     metadata = {
         "run_timestamp": timestamp,
+        "structurally_valid": workbook.is_structurally_valid,
+        "missing_sheets": workbook.missing_sheets,
+        "structural_review_items": len(validation.structural),
         "researcher_count": len(workbook.researchers_df),
         "interaction_count": len(workbook.interactions_df),
         "contribution_count": len(workbook.contributions_df),

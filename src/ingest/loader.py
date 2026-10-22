@@ -102,16 +102,27 @@ def load_workbook(excel_path: str) -> WorkbookData:
     print(f"Starting workbook load: {excel_path}")
 
     workbook = pd.ExcelFile(excel_path)
-    missing_sheets = []
-
-    for sheet_name in REQUIRED_SHEETS:
-        if sheet_name not in workbook.sheet_names:
-            missing_sheets.append(sheet_name)
+    missing_sheets = [
+        sheet_name
+        for sheet_name in REQUIRED_SHEETS
+        if sheet_name not in workbook.sheet_names
+    ]
 
     if missing_sheets:
         missing_sheet_names = ", ".join(missing_sheets)
-        raise ValueError(
-            f"Workbook is missing required sheet(s): {missing_sheet_names}"
+        print(
+            "Workbook is missing required sheet(s): "
+            f"{missing_sheet_names}"
+        )
+        print("Worksheet data loading skipped.")
+        return WorkbookData(
+            researchers_df=pd.DataFrame(),
+            engagements_df=pd.DataFrame(),
+            interactions_df=pd.DataFrame(),
+            contributions_df=pd.DataFrame(),
+            lists={},
+            config={},
+            missing_sheets=missing_sheets,
         )
 
     researchers_df = load_table(

@@ -8,9 +8,6 @@ from src.reporting.dashboard_generator import generate_html_dashboard
 def main():
     workbook = load_workbook("data/ICT_interactions_engagements.xlsx")
 
-    print(workbook.engagements_df.head())
-    print(workbook.engagements_df.columns.tolist())
-
     results = validate_workbook(workbook)
 
     run_dir = save_run_history(workbook, results)
@@ -20,6 +17,12 @@ def main():
         validation=results,
         output_path=run_dir / "validation_report.html",
         )
+
+    if not workbook.is_structurally_valid:
+        print("Validation report generated successfully.")
+        print("Dashboard generation skipped.")
+        print("Workbook contains structural errors.")
+        return
 
     summary_metrics = calculate_dashboard_metrics(workbook)
 

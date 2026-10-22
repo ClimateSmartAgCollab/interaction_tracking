@@ -160,6 +160,7 @@ def generate_html_validation_report(
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     executive_summary = [
+        ("Number of Structural Errors", len(validation.structural)),
         ("Number of Researchers", len(workbook.researchers_df)),
         ("Number of Interactions", len(workbook.interactions_df)),
         ("Number of Contributions", len(workbook.contributions_df)),
@@ -349,6 +350,7 @@ def generate_html_validation_report(
 
     <section>
       <h2>DATA CORRECTIONS</h2>
+      {_render_review_items("Workbook Structure", validation.structural)}
       {_render_review_items("Researchers", validation.researchers)}
       {_render_review_items("Interactions", validation.interactions)}
       {_render_review_items("Contributions", validation.contributions)}
