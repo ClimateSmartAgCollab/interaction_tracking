@@ -221,6 +221,7 @@ def _build_engagement_reviews(
     name_lookup: pd.Series,
     email_lookup: pd.Series,
     role_lookup: pd.Series,
+    reference_date: pd.Timestamp,
 ) -> list[EngagementReview]:
     """Build one review for each engagement in the interactions table."""
     engagements = workbook.engagements_df
@@ -277,6 +278,12 @@ def _build_engagement_reviews(
         latest_interaction = ordered_interactions.iloc[-1]
         first_interaction = ordered_interactions.iloc[0]
 
+        # Inactivity is based only on calendar dates, regardless of the
+        # engagement's status or the time of day the dashboard is generated.
+        days_since_activity = (
+            reference_date.normalize()
+            - pd.Timestamp(latest_interaction["interaction_date"]).normalize()
+        ).days
         engagement_duration_days = (
             pd.Timestamp(latest_interaction["interaction_date"])
             - pd.Timestamp(first_interaction["interaction_date"])
@@ -335,6 +342,7 @@ def _build_engagement_reviews(
                 latest_interaction_date=_date_text(
                     latest_interaction["interaction_date"]
                 ),
+                days_since_activity=days_since_activity,
                 latest_next_action=_display_text(
                     latest_interaction["next_action"]
                 ),
@@ -452,6 +460,7 @@ def calculate_dashboard_metrics(
         name_lookup,
         email_lookup,
         role_lookup,
+        dashboard_reference_date,
     )
     contribution_breakdown = _build_contribution_breakdown(
         workbook,

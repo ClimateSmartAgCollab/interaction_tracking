@@ -168,7 +168,12 @@ def _render_engagement_review_summaries(
     groups = []
     for status_name, reviews in status_groups.items():
         rows = []
-        for review in reviews:
+        # Show the engagements needing attention first within every status.
+        for review in sorted(
+            reviews,
+            key=lambda item: item.days_since_activity,
+            reverse=True,
+        ):
             anchor = _engagement_anchor(review.engagement_id)
             title = review.engagement_title or review.engagement_id
             values = (
@@ -177,6 +182,7 @@ def _render_engagement_review_summaries(
                 str(review.participant_count),
                 _interaction_activity(review),
                 review.latest_interaction_date,
+                str(review.days_since_activity),
             )
             cells = "\n".join(
                 "              <td>"
@@ -202,6 +208,7 @@ def _render_engagement_review_summaries(
                 <th>Researchers</th>
                 <th>Interaction Activity</th>
                 <th>Latest Activity</th>
+                <th>Days Since Activity</th>
               </tr>
             </thead>
             <tbody>
@@ -581,22 +588,25 @@ def generate_html_dashboard(
       border-radius: 0;
     }}
     .engagement-navigation-table {{
-      min-width: 760px;
+      min-width: 900px;
     }}
     .engagement-navigation-table th:nth-child(1) {{
-      width: 28%;
-    }}
-    .engagement-navigation-table th:nth-child(2) {{
-      width: 18%;
-    }}
-    .engagement-navigation-table th:nth-child(3) {{
-      width: 12%;
-    }}
-    .engagement-navigation-table th:nth-child(4) {{
       width: 24%;
     }}
+    .engagement-navigation-table th:nth-child(2) {{
+      width: 15%;
+    }}
+    .engagement-navigation-table th:nth-child(3) {{
+      width: 10%;
+    }}
+    .engagement-navigation-table th:nth-child(4) {{
+      width: 22%;
+    }}
     .engagement-navigation-table th:nth-child(5) {{
-      width: 18%;
+      width: 14%;
+    }}
+    .engagement-navigation-table th:nth-child(6) {{
+      width: 15%;
     }}
     .engagement-navigation-table td {{
       padding: 0;

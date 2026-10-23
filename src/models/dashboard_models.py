@@ -102,6 +102,7 @@ class EngagementReview:
     interaction_count: int
     contribution_count: int
     latest_interaction_date: str
+    days_since_activity: int
     latest_next_action: str
     engagement_duration_days: int
 
