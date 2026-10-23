@@ -140,6 +140,18 @@ def _display_text(value: object) -> str:
     return "" if pd.isna(value) else str(value)
 
 
+def _participant_label(
+    researcher_id: object,
+    name_lookup: pd.Series,
+    email_lookup: pd.Series,
+) -> str:
+    """Return a researcher's name, falling back to their email address."""
+    researcher_name = _display_text(name_lookup.get(researcher_id, "")).strip()
+    if researcher_name:
+        return researcher_name
+    return _display_text(email_lookup.get(researcher_id, "")).strip()
+
+
 def _date_text(value: object) -> str:
     """Return a workbook date in a consistent display and sorting format."""
     if pd.isna(value):
@@ -253,11 +265,17 @@ def _build_engagement_reviews(
             kind="stable",
         )
 
-        # Interaction history is built in chronological order so each review
-        # tells the engagement story from the oldest activity to the newest.
+        # Display interaction history newest first without changing the
+        # chronological order used by the calculations below.
         interaction_history = [
             InteractionHistoryItem(
                 interaction_date=_date_text(interaction["interaction_date"]),
+                participant=_participant_label(
+                    interaction["researcher_id"],
+                    name_lookup,
+                    email_lookup,
+                ),
+                project=_display_text(interaction["project"]),
                 engagement_direction=_display_text(
                     interaction["engagement_direction"]
                 ),
@@ -272,7 +290,7 @@ def _build_engagement_reviews(
                 ),
                 next_action=_display_text(interaction["next_action"]),
             )
-            for _, interaction in ordered_interactions.iterrows()
+            for _, interaction in ordered_interactions.iloc[::-1].iterrows()
         ]
 
         latest_interaction = ordered_interactions.iloc[-1]

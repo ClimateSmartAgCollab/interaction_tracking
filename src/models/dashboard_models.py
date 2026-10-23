@@ -72,6 +72,8 @@ class InteractionHistoryItem:
     """One interaction displayed in an engagement review."""
 
     interaction_date: str
+    participant: str
+    project: str
     engagement_direction: str
     interaction_channel: str
     interaction_purpose: str

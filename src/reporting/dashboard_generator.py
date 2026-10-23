@@ -229,6 +229,8 @@ def _render_interaction_history_item(
     return (
         "              <tr>\n"
         f"                <td>{_display_value(item.interaction_date)}</td>\n"
+        f"                <td>{_display_value(item.participant)}</td>\n"
+        f"                <td>{_display_value(item.project)}</td>\n"
         f"                <td>{_display_value(item.engagement_direction)}</td>\n"
         f"                <td>{_display_value(item.interaction_channel)}</td>\n"
         f"                <td>{_display_value(item.interaction_purpose)}</td>\n"
@@ -245,7 +247,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
     )
     if not history_rows:
         history_rows = (
-            '              <tr><td colspan="5" class="history-empty">'
+            '              <tr><td colspan="7" class="history-empty">'
             "No interaction history found.</td></tr>"
         )
 
@@ -321,14 +323,30 @@ def _render_engagement_review(review: EngagementReview) -> str:
           </div>
           <h4>Interaction History</h4>
           <div class="history-table-container">
-            <table class="history-table">
+            <table class="history-table" data-sort-column="0" data-sort-direction="descending">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Direction</th>
-                  <th>Channel</th>
-                  <th>Purpose</th>
-                  <th>Next Action</th>
+                  <th data-sort-type="date" aria-sort="descending">
+                    <button type="button">Date <span class="sort-indicator">▼</span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Participant <span class="sort-indicator"></span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Project <span class="sort-indicator"></span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Direction <span class="sort-indicator"></span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Channel <span class="sort-indicator"></span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Purpose <span class="sort-indicator"></span></button>
+                  </th>
+                  <th data-sort-type="text">
+                    <button type="button">Next Action <span class="sort-indicator"></span></button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -744,7 +762,7 @@ def generate_html_dashboard(
       border-radius: 6px;
     }}
     .history-table {{
-      min-width: 680px;
+      min-width: 800px;
       font-size: 0.9rem;
     }}
     .history-table th,
@@ -755,17 +773,48 @@ def generate_html_dashboard(
       overflow-wrap: break-word;
     }}
     .history-table th:nth-child(1) {{
+      width: 11%;
+    }}
+    .history-table th:nth-child(2) {{
+      width: 16%;
+    }}
+    .history-table th:nth-child(3) {{
       width: 14%;
     }}
-    .history-table th:nth-child(2),
-    .history-table th:nth-child(3) {{
-      width: 13%;
-    }}
     .history-table th:nth-child(4) {{
-      width: 24%;
+      width: 10%;
     }}
     .history-table th:nth-child(5) {{
-      width: 36%;
+      width: 10%;
+    }}
+    .history-table th:nth-child(6) {{
+      width: 17%;
+    }}
+    .history-table th:nth-child(7) {{
+      width: 22%;
+    }}
+    .history-table th {{
+      cursor: pointer;
+    }}
+    .history-table th button {{
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      font-weight: bold;
+      text-align: left;
+      cursor: pointer;
+    }}
+    .history-table th button:focus-visible {{
+      outline: 2px solid #486581;
+      outline-offset: 2px;
+    }}
+    .sort-indicator {{
+      min-width: 0.8em;
     }}
     .history-table .history-empty {{
       width: auto;
@@ -877,6 +926,108 @@ def generate_html_dashboard(
     </section>
 
   </main>
+  <script>
+    document.querySelectorAll(".history-table").forEach((table) => {{
+      const tableBody = table.tBodies[0];
+      const headers = Array.from(table.tHead.rows[0].cells);
+      let sortColumn = Number(table.dataset.sortColumn);
+      let sortDirection = table.dataset.sortDirection;
+
+      Array.from(tableBody.rows).forEach((row, index) => {{
+        row.dataset.originalIndex = index;
+      }});
+
+      function cellValue(row, column) {{
+        const cell = row.cells[column];
+        return cell ? cell.textContent.trim() : "";
+      }}
+
+      function compareCellValues(left, right, type, direction) {{
+        if (!left && !right) return 0;
+        if (!left) return 1;
+        if (!right) return -1;
+
+        let comparison;
+        if (type === "date") {{
+          const leftDate = Date.parse(left);
+          const rightDate = Date.parse(right);
+          comparison = Number.isNaN(leftDate) || Number.isNaN(rightDate)
+            ? left.localeCompare(right, undefined, {{ sensitivity: "base" }})
+            : leftDate - rightDate;
+        }} else {{
+          comparison = left.localeCompare(
+            right,
+            undefined,
+            {{ sensitivity: "base", numeric: true }}
+          );
+        }}
+
+        return direction === "ascending" ? comparison : -comparison;
+      }}
+
+      function sortRows() {{
+        const type = headers[sortColumn].dataset.sortType;
+        const rows = Array.from(tableBody.rows);
+
+        rows.sort((leftRow, rightRow) => {{
+          const primaryComparison = compareCellValues(
+            cellValue(leftRow, sortColumn),
+            cellValue(rightRow, sortColumn),
+            type,
+            sortDirection
+          );
+          if (primaryComparison !== 0) return primaryComparison;
+
+          if (sortColumn !== 0) {{
+            const dateComparison = compareCellValues(
+              cellValue(leftRow, 0),
+              cellValue(rightRow, 0),
+              "date",
+              "descending"
+            );
+            if (dateComparison !== 0) return dateComparison;
+          }}
+
+          return Number(leftRow.dataset.originalIndex)
+            - Number(rightRow.dataset.originalIndex);
+        }});
+
+        rows.forEach((row) => tableBody.appendChild(row));
+      }}
+
+      function updateIndicators() {{
+        headers.forEach((header, index) => {{
+          const active = index === sortColumn;
+          header.setAttribute(
+            "aria-sort",
+            active ? sortDirection : "none"
+          );
+          header.querySelector(".sort-indicator").textContent = active
+            ? (sortDirection === "ascending" ? "▲" : "▼")
+            : "";
+        }});
+      }}
+
+      headers.forEach((header, column) => {{
+        header.addEventListener("click", () => {{
+          if (sortColumn === column) {{
+            sortDirection = sortDirection === "ascending"
+              ? "descending"
+              : "ascending";
+          }} else {{
+            sortColumn = column;
+            sortDirection = "ascending";
+          }}
+
+          sortRows();
+          updateIndicators();
+        }});
+      }});
+
+      sortRows();
+      updateIndicators();
+    }});
+  </script>
 </body>
 </html>
 """
