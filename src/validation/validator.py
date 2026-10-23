@@ -17,7 +17,7 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
     print("Running required worksheet checks...")
     validate_required_worksheets(workbook, results)
 
-    if not workbook.is_structurally_valid:
+    if not results.is_structurally_valid:
         print(
             "Workbook contains structural errors. "
             "Remaining validation skipped."
@@ -26,6 +26,13 @@ def validate_workbook(workbook: WorkbookData) -> ValidationResults:
 
     print("Running required column checks...")
     validate_required_columns(workbook, results)
+
+    if not results.is_structurally_valid:
+        print(
+            "Workbook contains structural errors. "
+            "Remaining validation skipped."
+        )
+        return results
 
     print("Running missing value checks...")
     validate_missing_values(workbook, results)
@@ -141,7 +148,7 @@ def validate_required_columns(
     print("Checking required columns for researchers...")
     for column_name in researchers_required_columns:
         if column_name not in workbook.researchers_df.columns:
-            results.researchers.append(
+            results.structural.append(
                 ReviewItem(
                     title=(
                         "Researchers sheet missing "
@@ -164,7 +171,7 @@ def validate_required_columns(
     print("Checking required columns for engagements...")
     for column_name in engagements_required_columns:
         if column_name not in workbook.engagements_df.columns:
-            results.engagements.append(
+            results.structural.append(
                 ReviewItem(
                     title=(
                         "Engagements sheet missing "
@@ -187,7 +194,7 @@ def validate_required_columns(
     print("Checking required columns for interactions...")
     for column_name in interactions_required_columns:
         if column_name not in workbook.interactions_df.columns:
-            results.interactions.append(
+            results.structural.append(
                 ReviewItem(
                     title=(
                         "Interactions sheet missing "
@@ -210,7 +217,7 @@ def validate_required_columns(
     print("Checking required columns for contributions...")
     for column_name in contributions_required_columns:
         if column_name not in workbook.contributions_df.columns:
-            results.contributions.append(
+            results.structural.append(
                 ReviewItem(
                     title=(
                         "Contributions sheet missing "

@@ -18,10 +18,10 @@ def main():
         output_path=run_dir / "validation_report.html",
         )
 
-    if not workbook.is_structurally_valid:
+    if not results.is_structurally_valid:
         print("Validation report generated successfully.")
-        print("Dashboard generation skipped.")
         print("Workbook contains structural errors.")
+        print("Dashboard generation skipped.")
         return
 
     summary_metrics = calculate_dashboard_metrics(workbook)

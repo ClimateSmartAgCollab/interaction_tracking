@@ -41,7 +41,7 @@ def save_run_history(
     # Save run metadata
     metadata = {
         "run_timestamp": timestamp,
-        "structurally_valid": workbook.is_structurally_valid,
+        "structurally_valid": validation.is_structurally_valid,
         "missing_sheets": workbook.missing_sheets,
         "structural_review_items": len(validation.structural),
         "researcher_count": len(workbook.researchers_df),

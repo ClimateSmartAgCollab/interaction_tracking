@@ -44,3 +44,8 @@ class ValidationResults:
     completeness_metrics: dict[str, dict[str, float]] = field(
         default_factory=dict
     )
+
+    @property
+    def is_structurally_valid(self) -> bool:
+        """Return whether required worksheets and columns are available."""
+        return not self.structural
