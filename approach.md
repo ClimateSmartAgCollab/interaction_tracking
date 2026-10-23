@@ -1,35 +1,4 @@
-# Researcher Engagement Tracker - Architecture and Development Approach
-
-## Project Goal
-
-Build a lightweight researcher engagement tracking and reporting system using:
-
-```text
-Excel Workbook
-    ↓
-Validation and Data Quality Review
-    ↓
-Manual Data Corrections
-    ↓
-Analytics and Reporting
-    ↓
-Self-Contained HTML Dashboard
-```
-
-The Excel workbook is the single source of truth.
-
-The Python code must never write changes back to the workbook.
-All corrections are made manually by users after reviewing generated reports.
-Controlled vocabulary validation is driven entirely by the Lists worksheet.
-Lists are matched to workbook columns by name.
-
----
-
-
-
 # Core Principles
-
-
 
 ## Source of Truth
 
@@ -38,6 +7,7 @@ The Excel workbook is the authoritative data source.
 The workbook contains:
 
 - Researchers table
+- Engagements table
 - Interactions table
 - Contributions table
 - Controlled vocabulary sheets
@@ -48,91 +18,17 @@ The Python application only:
 - Reads workbook data
 - Validates workbook data
 - Generates recommendations
-- Produces reports
+- Produces reports and dashboards
 
 The Python application never modifies workbook contents.
 
----
-
-
-
-## Separation of Functions
-
-The system is intentionally divided into two independent workflows.
-
-### Workflow 1: Data Stewardship
-
-Purpose:
-
-Validate data quality and identify maintenance tasks.
-
-```text
-Workbook
-    ↓
-Validation Script
-    ↓
-Data Quality Report
-    ↓
-Manual Workbook Updates
-```
-
-Audience:
-
-- Data steward
-- Workbook maintainer
-
-Output:
-
-```text
-quality_report.html
-```
+All workbook corrections are performed manually by users after reviewing generated reports.
 
 ---
-
-
-
-### Workflow 2: Team Reporting
-
-Purpose:
-
-Generate visual analytics and dashboards for stakeholders.
-
-```text
-Validated Workbook
-    ↓
-Reporting Script
-    ↓
-Dashboard HTML
-```
-
-Audience:
-
-- Research team
-- Project leadership
-- Stakeholders
-
-Output:
-
-```text
-engagement_dashboard.html
-```
-
-The dashboard has two objectives:
-
-1. Provide a high-level view of engagement performance across Projects.
-2. Provide an action-oriented work queue that helps identify researchers who require outreach, follow-up, or recognition.
-
-## The dashboard should not simply report historical activity. It should help determine where engagement efforts are succeeding and where future attention should be focused.
-
-
 
 # Workbook Structure
 
-
-
 ## Data Tables
-
-
 
 ### Researchers
 
@@ -141,24 +37,77 @@ Fields:
 ```text
 researcher_id
 email
-Project
+project
 role
 organization
 date_added
 researcher_status
 ```
 
-The Project field represents the researcher's primary Project.
- 
-Researchers associated with multiple Projects may list
-multiple Project values separated by semicolons.
- 
-Future versions may attribute Project at the engagement level
-if cross-Project participation becomes common.
+Researchers represent people or contacts involved in engagement activities.
+
+A researcher may belong to one or more projects.
+
+Multiple project memberships are represented as semicolon-separated values.
+
+Example:
+
+```text
+ACTIVATE
+```
+
+```text
+ACTIVATE;CAT-G
+```
+
+Researchers may participate in multiple engagements.
 
 ---
 
+### Engagements
 
+Fields:
+
+```text
+engagement_id
+engagement_status
+title
+```
+
+The Engagements table is the authoritative source of engagement metadata.
+
+Each engagement represents a unit of work, relationship, initiative, conversation stream, or support activity.
+
+Examples:
+
+```text
+ENG-0001
+```
+
+```text
+DMP Outreach for Animal Genomics
+```
+
+Status values are maintained through controlled vocabularies.
+
+Examples:
+
+```text
+Open
+Closed
+Reopened
+```
+
+The application must not hardcode engagement statuses.
+
+An engagement may involve:
+
+- Multiple researchers
+- Multiple projects
+- Multiple interactions
+- Multiple contributions
+
+---
 
 ### Interactions
 
@@ -168,6 +117,7 @@ Fields:
 interaction_id
 engagement_id
 researcher_id
+project
 interaction_date
 interaction_channel
 engagement_direction
@@ -176,27 +126,35 @@ interaction_summary
 next_action
 ```
 
-engagement_id
-
-Groups related interactions into a single engagement.
-
-Example:
-ENG-0001
-ENG-0002
-
-interaction_purpose
-
-The purpose of the interaction.
+Interactions represent individual communication or activity records.
 
 Examples:
-initial_outreach
-schema_discussion
-dataset_discussion
-documentation_request
-content_submission
+
+```text
+Meeting
+Email
+Documentation review
+Dataset discussion
+Training session
+```
+
+Interactions connect researchers to engagements.
+
+Interactions may belong to one or more projects using semicolon-separated values.
+
+Example:
+
+```text
+ACTIVATE
+```
+
+```text
+ACTIVATE;CAT-G
+```
+
+All interaction records must reference a valid engagement.
+
 ---
-
-
 
 ### Contributions
 
@@ -210,452 +168,173 @@ date_received
 content_type
 ```
 
----
-
-
-
-# Controlled Vocabulary Sheets
-
-The code should read these sheets dynamically every run.
+Contributions represent outputs received as a result of engagement activity.
 
 Examples:
 
 ```text
-project
-role
-researcher_status
-interaction_channel
-engagement_direction
-interaction_purpose
-organization
-content_type
+Dataset
+Documentation
+Metadata
+Publication
+Training Material
 ```
 
-Rules:
-
-- Never hardcode controlled vocabulary values.
-- All validation should use workbook-controlled lists.
-- New values can be added in Excel without code changes.
+Contributions are linked back to interactions and researchers.
 
 ---
-
-
-
-# Configuration Sheet
-
-Business rules are stored in Excel.
-
-Example:
-
-
-| setting                 | value |
-| ----------------------- | ----- |
-| dormant_days            | 120   |
-| champion_contributions  | 3     |
-| max_display_list_values | 10    |
-
-
-The Python code should read configuration values at runtime.
-
-Examples:
-
-```text
-dormant_days
-champion_contributions
-```
-
-Benefits:
-
-- No code changes required
-- Business rules are transparent
-- Rules are versioned with data
-
----
-
-
-
-# Project Structure
-
-```text
-researcher_tracker/
-│
-├── data/
-│   └── engagement_tracker.xlsx
-│
-├── runs/
-│
-├── src/
-│   ├── load_data.py
-│   ├── validate.py
-│   ├── recommendations.py
-│   ├── metrics.py
-│   ├── charts.py
-│   ├── dashboard.py
-│   └── utilities.py
-│
-└── approach.md
-```
-
----
-
-
-
-## Model Structure
-
-Models are grouped by domain rather than creating one model file per module.
-
-```text
-WorkbookData
-│
-├── researchers_df
-├── interactions_df
-├── contributions_df
-├── lists
-└── config
-
-ValidationResults
-│
-├── researchers
-├── interactions
-├── contributions
-├── recommendations
-└── completeness_metrics
-    │
-    ├── researchers
-    ├── interactions
-    └── contributions
-
-ReviewItem
-│
-├── title
-├── category
-├── priority
-├── table_name
-├── record_id
-├── excel_row
-├── field_name
-├── current_value
-├── message
-└── suggested_action
-
-HTML Report
-│
-├── Executive Summary
-├── Data Corrections
-│   ├── Researchers
-│   ├── Interactions
-│   └── Contributions
-├── Recommendations
-└── Completeness Metrics
-
-Data Correction Cards
-│
-├── Descriptive issue title
-├── Priority indicator
-├── Worksheet name
-├── Excel row number
-├── Field name
-├── Validation message
-├── Suggested action
-└── Completion checkbox
-
-DashboardMetrics
-│
-├── executive_summary : EngagementMetrics
-│ ├── total_researchers
-│ ├── new_researchers_this_month
-│ ├── total_engagements
-│ ├── interactions_this_month
-│ ├── contributions_this_month
-│ └── total_contributions
-│
-├── project_performance : list[PROJECTMetrics]
-│   │
-│   └── PROJECTMetrics
-│       ├── project_name
-│       ├── total_researchers
-│       ├── new_researchers_this_month
-│       ├── total_engagements
-│       ├── interactions_this_month
-│       ├── contributions_this_month
-│       └── total_contributions
-│
-└── action_queues : list[ActionQueue]
-    │
-    └── ActionQueue
-        ├── name
-        ├── title
-        └── items : list[ActionItem]
-            │
-            └── ActionItem
-                ├── title
-                ├── description
-                ├── researcher_id
-                └── project_name
-```
-
----
-
-
-
-# Run Management
-
-Outputs should never overwrite previous runs.
-
-Every execution creates a timestamped folder.
-
-Example:
-
-```text
-runs/
-│
-├── 2026-09-28_201530/
-│   ├── validation_report.html
-│   ├── researchers.parquet
-│   ├── interactions.parquet
-│   ├── contributions.parquet
-│   ├── lists.json
-│   ├── config.json
-│   └── run_metadata.json
-│
-├── 2026-10-02_093015/
-│   └── ...
-```
-
-Benefits:
-
-- Historical snapshots
-- Audit trail
-- Report reproducibility
-- Trend analysis over time
-
-
-
-### Run Snapshots
-
-Each run preserves the exact inputs used to generate the validation report. The goal is to provide a complete, reproducible record of the data, reference values, and business rules used during validation.
-
-The run snapshot includes:
-
-- researchers.parquet
-- interactions.parquet
-- contributions.parquet
-
-These files contain the workbook data used during the run and allow future analysis to be performed without requiring access to the original Excel workbook. Using Parquet provides efficient storage, preserves data types, and supports rapid loading into pandas for troubleshooting or re-analysis.
-
-The run snapshot also includes:
-
-- lists.json
-- config.json
-
-These files preserve the controlled vocabularies and configuration settings that were in effect when the validation was executed. This ensures that historical reports can be understood and reproduced even if workbook lists or business rules change over time.
-
-Together, the data snapshots, reference data, configuration, metadata, and generated reports create a complete audit package for each run.
-
----
-
-
 
 # Validation Workflow
 
-
-
 ## Goal
 
-Determine whether the workbook data is complete, consistent, and reliable for reporting.
+Determine whether workbook data is complete, consistent, and reliable for reporting.
 
-Validation focuses on five areas:
+Validation focuses on:
 
 ### Required Columns
 
-Ensure each workbook table contains the columns required for validation, reporting, and relationship checks.
+Ensure all required worksheets and fields exist.
+
+---
 
 ### Missing Values
 
-Identify records where required fields are blank and require data steward review.
+Identify required values that are blank.
+
+---
 
 ### Controlled Vocabulary Validation
 
-Verify that workbook values match the controlled vocabularies defined in the Lists worksheets.
+Validate values against workbook-controlled lists.
+
+The application should never hardcode vocabulary values.
+
+---
 
 ### Relationship Validation
 
-Confirm that references between researchers, interactions, and contributions point to valid records.
+Confirm relationships are valid.
+
+Examples:
+
+```text
+interaction.researcher_id
+    →
+researcher.researcher_id
+```
+
+```text
+interaction.engagement_id
+    →
+engagement.engagement_id
+```
+
+```text
+contribution.source_interaction_id
+    →
+interaction.interaction_id
+```
+
+---
 
 ### Engagement Validation
- 
-Verify engagement_id values are populated and consistently used.
+
+Validate engagement-specific structure and usage.
+
+Examples:
+
+```text
+Engagement exists
+```
+
+```text
+Engagement status is valid
+```
+
+```text
+Interaction references a valid engagement
+```
+
+```text
+Engagement has no interactions
+```
+
+(Warning only)
+
+---
 
 ### Duplicate Detection
 
-Identify values that should be unique, such as researcher IDs, interaction IDs, contribution IDs, and email addresses.
+Identify values that should be unique.
+
+Examples:
+
+```text
+researcher_id
+```
+
+```text
+interaction_id
+```
+
+```text
+contribution_id
+```
+
+```text
+engagement_id
+```
+
+```text
+email
+```
+
+---
 
 ### Completeness Metrics
 
-Measure the percentage of populated values for each field to provide a high-level view of data quality.
+Measure population percentages across workbook fields.
 
-Validation results are presented as actionable review items in the HTML report. Each review item includes a descriptive issue title, worksheet name, Excel row number, affected field, and suggested action to support a checklist-style data correction workflow.
-
----
-
-
-
-# Researcher Recommendations
-
-The code must generate recommendations.
-
-The code must never apply changes.
-
-Users decide whether to update Excel.
+These metrics provide a high-level view of data quality and stewardship effort.
 
 ---
 
+# Dashboard Philosophy
 
+## Purpose
 
-## Suggested Dormant
+The dashboard is an engagement management and review tool.
 
-Rule:
-
-```text
-Last interaction older than inactive_days
-AND
-Current status is not dormant
-```
-
-Output:
+The dashboard should help answer:
 
 ```text
-Researcher ID
-Current Status
-Last Interaction Date
-Suggested Status
-Reason
+What work is active?
+
+Which engagements require attention?
+
+Which projects are receiving engagement effort?
+
+Which activities are generating contributions?
+
+Where should future engagement effort be focused?
 ```
+
+The dashboard is not intended to be a simple historical report.
 
 ---
 
-
-
-## Suggested Contributor
-
-Rule:
-
-```text
-Contribution count > 0
-AND
-Any status except Contributor or Champion
-```
-
-Output:
-
-```text
-Suggested Status = contributor
-```
-
----
-
-
-
-## Suggested Champion
-
-Rule controlled by configuration.
-
-Example:
-
-```text
-Contributions >= champion_contributions
-```
-
-Potential future rules:
-
-```text
-Referred colleagues
-Multiple contributions
-Multiple Project engagements
-```
-
----
-
-
-
-## Suggested Active
-
-Rule:
-
-```text
-Prospect
-AND
-At least one inbound interaction
-```
-
-Output:
-
-```text
-Suggested Status = active
-```
-
----
-
-
-
-# Analytics Workflow
-
-
-
-## Goal
-
-Determine:
-
-```text
-What does the data tell us?
-```
-
----
-
-# Metrics
-
-## Executive Summary
-
-```text
-Total Researchers
-New Researchers This Month
-
-Total Engagements
-
-Interactions This Month
-
-Contributions This Month
-Total Contributions
-```
-
-These metrics answer:
-
-```text
-Is the network growing?
-
-How active have we been?
-
-Are contributions being generated?
-```
-
----
-
-# Dashboard Design
-
-Generate a self-contained HTML dashboard.
-
-No web server required.
-
-Open directly in a browser.
-
----
-
-## Dashboard Sections
+# Dashboard Sections
 
 ### Executive Summary
 
+High-level portfolio metrics.
+
+Examples:
+
 ```text
 Total Researchers
+
 New Researchers This Month
 
 Total Engagements
@@ -663,189 +342,157 @@ Total Engagements
 Interactions This Month
 
 Contributions This Month
+
 Total Contributions
 ```
 
 ---
 
 ### Project Performance
-Table.
-```text
-Total Researchers
 
-New Researchers This Month
+Project-level engagement metrics.
 
-Total Engagements
-
-Interactions This Month
-
-Contributions This Month
-
-Total Contributions
-```
-
-The goal is to understand:
+The table should distinguish:
 
 ```text
-Which Projects are growing?
-
-Which Projects are receiving engagement effort?
-
-Which Projects are generating contributions?
+Lifetime totals
 ```
 
----
+from
 
-### Researcher Analytics
-Future development
 ```text
-Researchers by Project
-
-Researchers by Role
-
-Researchers by Status
-
-Researchers by Organization
+Current-period activity
 ```
-
----
-
-### Engagement Analytics
-Future development
-```text
-Total Engagements
-
-Total Interactions
-
-Interactions by Channel
-
-Interactions by Purpose
-
-Interactions per Engagement
-
-Engagements by Project
-```
-
----
-
-### Contribution Analytics
-Future development
-```text
-Contributions by Content Type
-
-Contributions by Project
-
-Contributions by Month
-
-Contributions by Researcher Status
-```
-
----
-
-### Action Queues
-
-Future workflow-focused section.
 
 Examples:
 
 ```text
-Open Actions
+Researchers
 
-Researchers Requiring Follow-Up
+Researchers Added (Month Year)
 
-Researchers Suggested for Dormant Status
+Engagements
 
-Researchers Suggested for Contributor Status
+Total Interactions
 
-Researchers Suggested for Champion Status
+Interactions (Month Year)
+
+Total Contributions
+
+Contributions (Month Year)
+```
+
+The purpose is to understand:
+
+```text
+Which projects are growing?
+
+Which projects are active?
+
+Which projects are generating outcomes?
 ```
 
 ---
 
-### Future Metrics
+### Engagement Review Summaries
 
-### Future Metrics
+Primary engagement navigation.
 
-```text
-Average Interactions per Engagement
-
-Average Interactions Before First Response
-
-Average Interactions Before First Contribution
-
-Inbound Response Rate
-
-Response Rate by Project
-
-Response Rate by Role
-
-Contribution Rate by Project
-
-Contribution Rate by Role
-
-Average Engagement Duration
-
-Open Engagements
-
-Longest Running Open Engagements
-```
-
-These metrics are intended to answer questions such as:
+Engagements are grouped dynamically by:
 
 ```text
-How much effort is typically required to get a response?
-
-How much effort is typically required to obtain a contribution?
-
-Which Projects are easiest to engage?
-
-Which roles are most responsive?
-
-Which Projects generate the strongest contribution outcomes?
-
-How many interactions are required to support a typical engagement?
-
-Which engagements require follow-up or may be stalled?
+engagement_status
 ```
 
-# Technology Choices
-
-Preferred stack:
+Examples:
 
 ```text
-Python
-pandas
-openpyxl
-plotly
-jinja2
-pyarrow
+Open
+
+Closed
+
+Reopened
 ```
 
-Reasons:
+Status values should never be hardcoded.
 
-- Works directly with Excel
-- Generates interactive charts
-- Produces standalone HTML
-- Easy future migration to Streamlit if desired
-- Provides efficient Parquet storage for run snapshots.
+Each status group provides a summary table linking to detailed engagement review cards.
 
 ---
 
+### Engagement Reviews
 
+Detailed engagement-level review cards.
 
-# Future Possibilities
-
-Potential future enhancements:
+An engagement review includes:
 
 ```text
-Streamlit dashboard
-PDF exports
-PowerPoint exports
-Historical trend comparisons
-Data quality scoring
-Researcher activity scoring
+Title
+
+Status
+
+Engagement ID
+
+Projects
+
+Participant Count
+
+Interaction Activity
+
+Latest Activity
+
+Latest Next Action
+
+Contribution Count
 ```
 
-The current goal is intentionally simple:
+Expanded views include:
 
-Excel Workbook → Validation Report → Manual Cleanup → Dashboard HTML
+```text
+Participant List
+
+Interaction History
+```
+
+The engagement is the primary reporting object.
+
+Researchers, interactions, projects, and contributions provide supporting context.
+
+---
+
+# Engagement Review Data Model
+
+```text
+EngagementReview
+│
+├── engagement_id
+├── engagement_title
+├── engagement_status
+├── projects
+├── participant_count
+├── participants
+├── interaction_count
+├── contribution_count
+├── latest_interaction_date
+├── latest_next_action
+├── engagement_duration_days
+└── interaction_history
+```
+
+```text
+EngagementParticipant
+│
+├── researcher_id
+├── researcher_email
+└── role
+```
+
+This structure reflects the current business model where:
+
+```text
+One engagement may involve many researchers.
+
+One engagement may involve many projects.
+```
+
+and engagements are the primary unit of reporting and review.
