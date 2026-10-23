@@ -37,6 +37,7 @@ Fields:
 ```text
 researcher_id
 email
+researcher_name
 project
 role
 organization
@@ -298,6 +299,20 @@ Measure population percentages across workbook fields.
 
 These metrics provide a high-level view of data quality and stewardship effort.
 
+### Structural Validation
+
+Required worksheets and required columns define the workbook structure.
+
+If required worksheets or required columns are missing:
+
+- Validation continues
+- Validation reports are generated
+- Run history is saved
+- Dashboard generation is skipped
+- The application exits cleanly
+
+Structural validation failures prevent reporting because the workbook shape is incomplete.
+
 ---
 
 # Dashboard Philosophy
@@ -474,6 +489,7 @@ EngagementReview
 ├── interaction_count
 ├── contribution_count
 ├── latest_interaction_date
+├── days_since_activity
 ├── latest_next_action
 ├── engagement_duration_days
 └── interaction_history
@@ -483,6 +499,7 @@ EngagementReview
 EngagementParticipant
 │
 ├── researcher_id
+├── researcher_name
 ├── researcher_email
 └── role
 ```
