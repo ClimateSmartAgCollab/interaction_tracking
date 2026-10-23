@@ -84,6 +84,7 @@ class EngagementParticipant:
     """One researcher participating in an engagement."""
 
     researcher_id: int | str
+    researcher_name: str
     researcher_email: str
     role: str
 

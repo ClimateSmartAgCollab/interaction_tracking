@@ -245,6 +245,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
     project_names = ", ".join(review.projects)
     participant_rows = "\n".join(
         "                <tr>\n"
+        f"                  <td>{_display_value(participant.researcher_name)}</td>\n"
         f"                  <td>{_display_value(participant.researcher_email)}</td>\n"
         f"                  <td>{_display_value(participant.role)}</td>\n"
         "                </tr>"
@@ -252,7 +253,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
     )
     if not participant_rows:
         participant_rows = (
-            '                <tr><td colspan="2" class="history-empty">'
+            '                <tr><td colspan="3" class="history-empty">'
             "No participants found.</td></tr>"
         )
 
@@ -300,6 +301,7 @@ def _render_engagement_review(review: EngagementReview) -> str:
               <table class="participant-table">
                 <thead>
                   <tr>
+                    <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
                   </tr>
@@ -718,10 +720,13 @@ def generate_html_dashboard(
       overflow-wrap: anywhere;
     }}
     .participant-table th:first-child {{
-      width: 60%;
+      width: 30%;
     }}
     .participant-table th:nth-child(2) {{
-      width: 40%;
+      width: 45%;
+    }}
+    .participant-table th:nth-child(3) {{
+      width: 25%;
     }}
     .history-table-container {{
       overflow-x: auto;

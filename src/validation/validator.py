@@ -102,6 +102,7 @@ def validate_required_columns(
     # Define the columns required by each workbook table.
     researchers_required_columns = [
         "researcher_id",
+        "researcher_name",
         "email",
         "project",
         "role",
@@ -635,6 +636,12 @@ def validate_controlled_vocabularies(
     # Match each list to exactly one workbook column, then validate its values.
     for list_name, valid_values in workbook.lists.items():
         print(f"Validating list: {list_name}")
+
+        # Researcher names are free-text display labels, never controlled
+        # vocabulary values, even if a similarly named list is present.
+        if list_name == "researcher_name":
+            continue
+
         matching_tables = []
 
         for table in tables:

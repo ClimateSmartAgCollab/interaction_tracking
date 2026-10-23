@@ -59,6 +59,16 @@ def _researcher_email_lookup(researchers: pd.DataFrame) -> pd.Series:
     return unique_researchers.set_index("researcher_id")["email"]
 
 
+def _researcher_name_lookup(researchers: pd.DataFrame) -> pd.Series:
+    """Map each researcher ID to its optional display name."""
+    identified = researchers.dropna(subset=["researcher_id"])
+    unique_researchers = identified.drop_duplicates(
+        subset=["researcher_id"],
+        keep="first",
+    )
+    return unique_researchers.set_index("researcher_id")["researcher_name"]
+
+
 def _researcher_role_lookup(researchers: pd.DataFrame) -> pd.Series:
     """Map each researcher ID to its role without duplicating activities."""
     identified = researchers.dropna(subset=["researcher_id"])
@@ -74,7 +84,14 @@ def _validate_columns(workbook: WorkbookData) -> None:
     required_columns = {
         "researchers": (
             workbook.researchers_df,
-            {"researcher_id", "email", "role", "project", "date_added"},
+            {
+                "researcher_id",
+                "researcher_name",
+                "email",
+                "role",
+                "project",
+                "date_added",
+            },
         ),
         "engagements": (
             workbook.engagements_df,
@@ -201,6 +218,7 @@ def _build_contribution_breakdown(
 
 def _build_engagement_reviews(
     workbook: WorkbookData,
+    name_lookup: pd.Series,
     email_lookup: pd.Series,
     role_lookup: pd.Series,
 ) -> list[EngagementReview]:
@@ -282,6 +300,10 @@ def _build_engagement_reviews(
         participants = [
             EngagementParticipant(
                 researcher_id=researcher_id,
+                # Names are display-only; preserve a blank workbook value.
+                researcher_name=_display_text(
+                    name_lookup.get(researcher_id, "")
+                ),
                 researcher_email=_display_text(
                     email_lookup.get(researcher_id, "")
                 ),
@@ -419,6 +441,7 @@ def calculate_dashboard_metrics(
         )
 
 
+    name_lookup = _researcher_name_lookup(researchers)
     email_lookup = _researcher_email_lookup(researchers)
     role_lookup = _researcher_role_lookup(researchers)
     contribution_projects = contributions[
@@ -426,6 +449,7 @@ def calculate_dashboard_metrics(
     ].map(interaction_project_lookup)
     engagement_reviews = _build_engagement_reviews(
         workbook,
+        name_lookup,
         email_lookup,
         role_lookup,
     )
