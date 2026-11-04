@@ -18,6 +18,8 @@ runs/
 
 # Generated HTML reports
 *.html
+!validation.html
+!data_entry.html
 
 # Generated PDF reports
 *.pdf
