@@ -156,9 +156,12 @@
     #workspace.show-engagement #engagement-form,
     #workspace.show-interaction #review-view,
     #workspace.show-interaction #interaction-form,
+    #workspace.show-bulk #review-view,
+    #workspace.show-bulk #bulk-form,
     #workspace.show-contribution #review-view,
     #workspace.show-contribution #contribution-form { display: block; }
     #workspace.show-interaction #review-body,
+    #workspace.show-bulk #review-body,
     #workspace.show-contribution #review-body { display: none; }
 
     .status-group {
@@ -264,6 +267,33 @@
       gap: 6px;
     }
     .checkboxes label { font-weight: 400; }
+    .bulk-checklist {
+      max-height: 280px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      max-width: 520px;
+      background: #fff;
+    }
+    .bulk-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+    }
+    .bulk-toolbar button { margin: 0; }
+    .pending-group {
+      margin: 0;
+    }
+    .pending-group > summary {
+      cursor: pointer;
+    }
+    .pending-group-members {
+      margin: 8px 0 0;
+      padding-left: 8px;
+    }
     .form-errors {
       margin: 0 0 16px;
       padding: 10px 12px;
@@ -315,7 +345,7 @@
     </div>
 
     <div id="review-view">
-      <p><button id="back-to-summaries" type="button">All engagements</button></p>
+      <p><button id="back-to-summaries" type="button">All Engagements</button></p>
       <div id="review-header"></div>
       <div id="review-body"></div>
     </div>
@@ -390,9 +420,9 @@
           <input id="ix-researcher-id" type="hidden">
         </div>
         <div class="field">
-          <label for="ix-project">Project</label>
-          <select id="ix-project"></select>
-          <p class="hint">Only this researcher's projects. Auto-filled when they have one.</p>
+          <span class="label" id="ix-project-label">Projects</span>
+          <div id="ix-project-options" class="checkboxes" role="group" aria-labelledby="ix-project-label"></div>
+          <p id="ix-project-hint" class="hint">Only this researcher's projects. Auto-selected when they have one.</p>
         </div>
         <div class="field">
           <label for="ix-date">Interaction date</label>
@@ -428,6 +458,62 @@
       </form>
     </div>
 
+    <div id="bulk-form" class="editor-form">
+      <h2>Bulk interaction</h2>
+      <p id="bk-engagement-bound" class="muted">Engagement is already selected.</p>
+      <div id="bk-errors" class="form-errors" hidden></div>
+      <form id="bk-form-el">
+        <input id="bk-engagement-id" type="hidden">
+        <div class="field">
+          <label for="bk-researcher-search">Researchers</label>
+          <input id="bk-researcher-search" type="search" placeholder="Filter name, email, ID, or organization" autocomplete="off">
+          <p id="bk-researcher-count" class="hint">0 researchers selected</p>
+          <div class="bulk-toolbar">
+            <button id="bk-select-participants" type="button">Select current participants</button>
+            <button id="bk-clear-researchers" type="button">Clear selection</button>
+          </div>
+          <div id="bk-researcher-options" class="checkboxes bulk-checklist" role="group" aria-label="Researchers"></div>
+          <p class="hint">Only researchers with at least one project. Nobody is selected until you choose them.</p>
+        </div>
+        <div class="field">
+          <span class="label" id="bk-project-label">Projects this activity is about</span>
+          <div id="bk-project-options" class="checkboxes" role="group" aria-labelledby="bk-project-label"></div>
+          <p id="bk-project-hint" class="hint">Options are the union of selected researchers' memberships. Intersection is selected by default.</p>
+        </div>
+        <div class="field">
+          <label for="bk-date">Interaction date</label>
+          <input id="bk-date" type="date" required>
+          <p id="bk-date-warning" class="hint warning-hint" hidden>This date is in the future. That is allowed for scheduled meetings.</p>
+        </div>
+        <div class="field">
+          <label for="bk-channel">Channel</label>
+          <select id="bk-channel" required></select>
+        </div>
+        <div class="field">
+          <label for="bk-direction">Direction</label>
+          <select id="bk-direction" required></select>
+        </div>
+        <div class="field">
+          <label for="bk-purpose">Purpose</label>
+          <select id="bk-purpose" required></select>
+        </div>
+        <div class="field">
+          <label for="bk-summary">Summary</label>
+          <textarea id="bk-summary"></textarea>
+          <p class="hint">Optional. Copied to every generated row.</p>
+        </div>
+        <div class="field">
+          <label for="bk-next">Next action</label>
+          <textarea id="bk-next"></textarea>
+          <p class="hint">Optional. Copied to every generated row.</p>
+        </div>
+        <div class="button-row">
+          <button type="submit">Add to workbook</button>
+          <button id="bk-cancel" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+
     <div id="engagement-form" class="editor-form">
       <h2>Add engagement and first interaction</h2>
       <p class="muted">Saves both records together so the engagement is not left empty.</p>
@@ -459,9 +545,9 @@
           <input id="ei-researcher-id" type="hidden">
         </div>
         <div class="field">
-          <label for="ei-project">Project</label>
-          <select id="ei-project"></select>
-          <p class="hint">Only this researcher's projects. Auto-filled when they have one.</p>
+          <span class="label" id="ei-project-label">Projects</span>
+          <div id="ei-project-options" class="checkboxes" role="group" aria-labelledby="ei-project-label"></div>
+          <p id="ei-project-hint" class="hint">Only this researcher's projects. Auto-selected when they have one.</p>
         </div>
         <div class="field">
           <label for="ei-date">Interaction date</label>
@@ -811,7 +897,7 @@
       Inactivity is latest interaction date vs today.
 
       Editor extensions: include engagements with zero interactions; keep
-      interaction_id and researcher_id on history rows for add-contribution.
+      interaction_id and researcher_id on history rows for later workspace actions.
     */
 
     function displayText(value) {
@@ -919,14 +1005,23 @@
     }
 
     function isPendingRecord(sheet, recordId) {
+      return !!findPendingRecord(sheet, recordId);
+    }
+
+    function findPendingRecord(sheet, recordId) {
       var target = normalizeId(recordId);
       var i;
       for (i = 0; i < state.pending.length; i += 1) {
         if (state.pending[i].sheet === sheet && normalizeId(state.pending[i].recordId) === target) {
-          return true;
+          return state.pending[i];
         }
       }
-      return false;
+      return null;
+    }
+
+    function isBulkPendingRecord(recordId) {
+      var item = findPendingRecord("interactions", recordId);
+      return !!(item && item.bulkGroup);
     }
 
     function buildEngagementReviews(model) {
@@ -1010,7 +1105,8 @@
             interaction_purpose: displayText(row.interaction_purpose),
             interaction_summary: displayText(row.interaction_summary),
             next_action: displayText(row.next_action),
-            pending: isPendingRecord("interactions", row.interaction_id)
+            pending: isPendingRecord("interactions", row.interaction_id),
+            bulk: isBulkPendingRecord(row.interaction_id)
           });
         }
 
@@ -1404,6 +1500,7 @@
         "show-review",
         "show-researcher",
         "show-interaction",
+        "show-bulk",
         "show-engagement",
         "show-contribution"
       );
@@ -1553,7 +1650,6 @@
       var participant;
       var item;
       var session;
-      var sessionHtml;
       var addLabel;
 
       if (!review) {
@@ -1571,7 +1667,7 @@
         "<div class=\"review-metrics\">" +
         "<div><span class=\"summary-label\">Projects</span><span class=\"summary-value\">" +
         escapeHtml(review.projects.join(", ") || "—") + "</span></div>" +
-        "<div><span class=\"summary-label\">Researchers</span><span class=\"summary-value\">" +
+        "<div><span class=\"summary-label\">Researcher Count</span><span class=\"summary-value\">" +
         escapeHtml(String(review.participant_count)) + "</span></div>" +
         "<div><span class=\"summary-label\">Latest Activity</span><span class=\"summary-value\">" +
         escapeHtml(review.interaction_count ? dashIfEmpty(review.latest_interaction_date) : "—") +
@@ -1585,6 +1681,7 @@
         "</div>" +
         "<div class=\"button-row\">" +
         "<button id=\"review-add-interaction\" type=\"button\">" + escapeHtml(addLabel) + "</button>" +
+        "<button id=\"review-bulk-interaction\" type=\"button\">Bulk interaction</button>" +
         "</div></div>";
 
       html = [];
@@ -1609,13 +1706,13 @@
 
       html.push("<h3>Interaction History</h3>");
       if (!review.interaction_history.length) {
-        html.push("<p class=\"muted\">No interaction history. Contributions cannot be added until this engagement has an interaction.</p>");
+        html.push("<p class=\"muted\">No interaction history.</p>");
       } else {
         html.push(
           "<div class=\"history-table-container\"><table class=\"history-table\">" +
           "<thead><tr>" +
           "<th>Date</th><th>Participant</th><th>Project</th><th>Direction</th>" +
-          "<th>Channel</th><th>Purpose</th><th>Next Action</th><th>Summary</th><th></th>" +
+          "<th>Channel</th><th>Purpose</th><th>Next Action</th><th>Summary</th>" +
           "</tr></thead><tbody>"
         );
         for (i = 0; i < review.interaction_history.length; i += 1) {
@@ -1623,15 +1720,15 @@
           html.push(
             "<tr><td>" + escapeHtml(item.interaction_date || "—") +
             (item.pending ? "<span class=\"pending-mark\">Pending</span>" : "") +
+            (item.bulk ? "<span class=\"pending-mark\">Bulk</span>" : "") +
             "</td><td>" + escapeHtml(item.participant || "—") +
-            "</td><td>" + escapeHtml(item.project || "—") +
+            "</td><td>" + escapeHtml(parseProjects(item.project).join(", ") || "—") +
             "</td><td>" + escapeHtml(item.engagement_direction || "—") +
             "</td><td>" + escapeHtml(item.interaction_channel || "—") +
             "</td><td>" + escapeHtml(item.interaction_purpose || "—") +
             "</td><td>" + escapeHtml(item.next_action || "—") +
             "</td><td>" + escapeHtml(item.interaction_summary || "—") +
-            "</td><td><button type=\"button\" class=\"add-contribution-row\" data-interaction-id=\"" +
-            escapeHtml(item.interaction_id) + "\">Add contribution</button></td></tr>"
+            "</td></tr>"
           );
         }
         html.push("</tbody></table></div>");
@@ -1642,17 +1739,7 @@
       if (!session.length) {
         html.push("<p class=\"muted\">None yet.</p>");
       } else {
-        sessionHtml = ["<table><thead><tr><th>Type</th><th>Label</th><th></th></tr></thead><tbody>"];
-        for (i = 0; i < session.length; i += 1) {
-          sessionHtml.push(
-            "<tr><td>" + escapeHtml(session[i].item.type) +
-            "</td><td>" + escapeHtml(session[i].item.label || session[i].item.recordId) +
-            "</td><td><button type=\"button\" class=\"remove-pending\" data-index=\"" +
-            session[i].index + "\">Remove</button></td></tr>"
-          );
-        }
-        sessionHtml.push("</tbody></table>");
-        html.push(sessionHtml.join(""));
+        html.push(renderPendingGroupsTable(groupPendingEntries(session), false));
       }
 
       body.innerHTML = html.join("");
@@ -1663,7 +1750,7 @@
       renderPending();
       renderSummaries();
       if (state.currentEngagementId &&
-          (state.view === "review" || state.view === "interaction" || state.view === "contribution")) {
+          (state.view === "review" || state.view === "interaction" || state.view === "bulk" || state.view === "contribution")) {
         renderReview();
       }
     }
@@ -1813,20 +1900,275 @@
       );
     }
 
-    function fillResearcherProjectSelect(selectId, researcherId) {
-      var select = document.getElementById(selectId);
+    function fillInteractionProjectOptions(prefix, researcherId) {
+      var container = document.getElementById(prefix + "-project-options");
+      var hint = document.getElementById(prefix + "-project-hint");
       var researcher = findRow("researchers", "researcher_id", researcherId);
       var projects = researcher ? parseProjects(researcher.project) : [];
-      if (!projects.length) {
-        fillSelect(select, [], { emptyLabel: researcherId ? "This researcher has no projects" : "Choose a researcher first" });
+      var html = [];
+      var i;
+      var id;
+      var onlyOne;
+
+      container.innerHTML = "";
+      if (!researcherId) {
+        hint.textContent = "Choose a researcher first.";
         return projects;
       }
-      if (projects.length === 1) {
-        fillSelect(select, projects, { selected: projects[0] });
+      if (!projects.length) {
+        hint.textContent = "This researcher has no projects. Add projects on the researcher in Excel, or add a researcher with projects first.";
+        return projects;
+      }
+
+      onlyOne = projects.length === 1;
+      for (i = 0; i < projects.length; i += 1) {
+        id = prefix + "-project-" + i;
+        html.push(
+          "<label for=\"" + id + "\"><input id=\"" + id +
+          "\" type=\"checkbox\" value=\"" + escapeHtml(projects[i]) + "\"" +
+          (onlyOne ? " checked disabled" : "") + "> " +
+          escapeHtml(projects[i]) + "</label>"
+        );
+      }
+      container.innerHTML = html.join("");
+      if (onlyOne) {
+        hint.textContent = "Auto-selected. This researcher has one project.";
       } else {
-        fillSelect(select, projects, { emptyLabel: "Choose a project" });
+        hint.textContent = "Choose one or more. Stored with semicolons in the workbook; shown with commas in reviews.";
       }
       return projects;
+    }
+
+    function selectedInteractionProjects(prefix) {
+      var boxes = document.querySelectorAll("#" + prefix + "-project-options input[type=\"checkbox\"]");
+      var selected = [];
+      var i;
+      for (i = 0; i < boxes.length; i += 1) {
+        if (boxes[i].checked) {
+          selected.push(boxes[i].value);
+        }
+      }
+      return selected;
+    }
+
+    function researcherMemberships(researcherId) {
+      var researcher = findRow("researchers", "researcher_id", researcherId);
+      return researcher ? parseProjects(researcher.project) : [];
+    }
+
+    function projectsInListOrder(projects) {
+      return parseProjects(joinProjects(projects));
+    }
+
+    function unionResearcherProjects(researcherIds) {
+      var union = [];
+      var i;
+      var j;
+      var memberships;
+      for (i = 0; i < researcherIds.length; i += 1) {
+        memberships = researcherMemberships(researcherIds[i]);
+        for (j = 0; j < memberships.length; j += 1) {
+          if (union.indexOf(memberships[j]) === -1) {
+            union.push(memberships[j]);
+          }
+        }
+      }
+      return projectsInListOrder(union);
+    }
+
+    function intersectionResearcherProjects(researcherIds) {
+      var intersection;
+      var i;
+      var j;
+      var memberships;
+      if (!researcherIds.length) {
+        return [];
+      }
+      intersection = researcherMemberships(researcherIds[0]).slice();
+      for (i = 1; i < researcherIds.length; i += 1) {
+        memberships = researcherMemberships(researcherIds[i]);
+        intersection = intersection.filter(function (project) {
+          return memberships.indexOf(project) !== -1;
+        });
+      }
+      return projectsInListOrder(intersection);
+    }
+
+    function bulkEligibleResearchers() {
+      return tableRows(state.model, "researchers").filter(function (row) {
+        return parseProjects(row.project).length > 0;
+      });
+    }
+
+    function selectedBulkResearcherIds() {
+      var boxes = document.querySelectorAll("#bk-researcher-options input[type=\"checkbox\"]");
+      var selected = [];
+      var i;
+      for (i = 0; i < boxes.length; i += 1) {
+        if (boxes[i].checked) {
+          selected.push(boxes[i].value);
+        }
+      }
+      return selected;
+    }
+
+    function updateBulkResearcherCount() {
+      var count = selectedBulkResearcherIds().length;
+      document.getElementById("bk-researcher-count").textContent =
+        count === 1 ? "1 researcher selected" : count + " researchers selected";
+    }
+
+    function filterBulkResearchers() {
+      var query = String(document.getElementById("bk-researcher-search").value || "").trim().toLowerCase();
+      var labels = document.querySelectorAll("#bk-researcher-options label");
+      var i;
+      var search;
+      for (i = 0; i < labels.length; i += 1) {
+        search = labels[i].getAttribute("data-search") || "";
+        labels[i].hidden = !!(query && search.indexOf(query) === -1);
+      }
+    }
+
+    function fillBulkResearcherOptions() {
+      var container = document.getElementById("bk-researcher-options");
+      var rows = bulkEligibleResearchers();
+      var review = findReview(state.currentEngagementId);
+      var participantCount = 0;
+      var html = [];
+      var i;
+      var row;
+      var id;
+      var participantIds = {};
+      if (review) {
+        for (i = 0; i < review.participants.length; i += 1) {
+          participantIds[normalizeId(review.participants[i].researcher_id)] = true;
+        }
+      }
+      for (i = 0; i < rows.length; i += 1) {
+        row = rows[i];
+        id = "bk-researcher-" + i;
+        if (participantIds[normalizeId(row.researcher_id)]) {
+          participantCount += 1;
+        }
+        html.push(
+          "<label for=\"" + id + "\" data-search=\"" + escapeHtml(researcherSearchText(row)) +
+          "\"><input id=\"" + id + "\" type=\"checkbox\" value=\"" +
+          escapeHtml(normalizeId(row.researcher_id)) + "\"> " +
+          escapeHtml(researcherLabel(row)) + "</label>"
+        );
+      }
+      container.innerHTML = html.length
+        ? html.join("")
+        : "<p class=\"muted\">No researchers with projects are in this workbook.</p>";
+      document.getElementById("bk-select-participants").disabled = participantCount === 0;
+      document.getElementById("bk-select-participants").textContent =
+        "Select current participants" + (participantCount ? " (" + participantCount + ")" : "");
+      document.getElementById("bk-researcher-search").value = "";
+      updateBulkResearcherCount();
+    }
+
+    function fillBulkProjectOptions() {
+      var container = document.getElementById("bk-project-options");
+      var hint = document.getElementById("bk-project-hint");
+      var researcherIds = selectedBulkResearcherIds();
+      var union = unionResearcherProjects(researcherIds);
+      var intersection = intersectionResearcherProjects(researcherIds);
+      var html = [];
+      var i;
+      var id;
+      container.innerHTML = "";
+      if (!researcherIds.length) {
+        hint.textContent = "Choose researchers first. Options are the union of their memberships. Intersection is selected by default.";
+        return;
+      }
+      if (!union.length) {
+        hint.textContent = "The selected researchers have no projects in common with the Lists sheet.";
+        return;
+      }
+      for (i = 0; i < union.length; i += 1) {
+        id = "bk-project-" + i;
+        html.push(
+          "<label for=\"" + id + "\"><input id=\"" + id +
+          "\" type=\"checkbox\" value=\"" + escapeHtml(union[i]) + "\"" +
+          (intersection.indexOf(union[i]) !== -1 ? " checked" : "") + "> " +
+          escapeHtml(union[i]) + "</label>"
+        );
+      }
+      container.innerHTML = html.join("");
+      if (intersection.length) {
+        hint.textContent = "Intersection is selected by default. Uncheck to narrow. Each row stores only that researcher's overlapping memberships.";
+      } else {
+        hint.textContent = "No shared memberships. Check projects this activity is about, or deselect researchers who do not belong to them.";
+      }
+    }
+
+    function selectBulkParticipants() {
+      var review = findReview(state.currentEngagementId);
+      var participantIds = {};
+      var boxes;
+      var i;
+      if (!review) {
+        return;
+      }
+      for (i = 0; i < review.participants.length; i += 1) {
+        participantIds[normalizeId(review.participants[i].researcher_id)] = true;
+      }
+      boxes = document.querySelectorAll("#bk-researcher-options input[type=\"checkbox\"]");
+      for (i = 0; i < boxes.length; i += 1) {
+        boxes[i].checked = !!participantIds[boxes[i].value];
+      }
+      updateBulkResearcherCount();
+      fillBulkProjectOptions();
+    }
+
+    function clearBulkResearchers() {
+      var boxes = document.querySelectorAll("#bk-researcher-options input[type=\"checkbox\"]");
+      var i;
+      for (i = 0; i < boxes.length; i += 1) {
+        boxes[i].checked = false;
+      }
+      updateBulkResearcherCount();
+      fillBulkProjectOptions();
+    }
+
+    function storedProjectsForResearcher(researcherId, selectedProjects) {
+      var memberships = researcherMemberships(researcherId);
+      return joinProjects(selectedProjects.filter(function (project) {
+        return memberships.indexOf(project) !== -1;
+      }));
+    }
+
+    function reserveInteractionIds(count) {
+      var existing = tableRows(state.model, "interactions").map(function (row) {
+        return row.interaction_id;
+      });
+      var ids = [];
+      var i;
+      var proposal;
+      for (i = 0; i < count; i += 1) {
+        proposal = proposeId(existing);
+        ids.push(canonicalizeId(proposal.value));
+        existing.push(ids[i]);
+      }
+      return ids;
+    }
+
+    function similarInteractionWarning(values) {
+      var rows = tableRows(state.model, "interactions");
+      var i;
+      var row;
+      for (i = 0; i < rows.length; i += 1) {
+        row = rows[i];
+        if (
+          normalizeId(row.engagement_id) === normalizeId(values.engagement_id) &&
+          normalizeId(row.researcher_id) === normalizeId(values.researcher_id) &&
+          String(row.interaction_date || "") === values.interaction_date &&
+          String(row.interaction_channel || "") === values.interaction_channel
+        ) {
+          return true;
+        }
+      }
+      return false;
     }
 
     function updateDateWarning(inputId, warningId) {
@@ -2219,6 +2561,127 @@
       }
     }
 
+    function removePendingOne(index) {
+      var item = state.pending[index];
+      if (!item) {
+        return;
+      }
+      removePendingItem(item);
+      state.pending.splice(index, 1);
+    }
+
+    function handlePendingRemoveClick(target) {
+      var index;
+      if (!target) {
+        return false;
+      }
+      if (target.classList.contains("remove-pending-one")) {
+        index = parseInt(target.getAttribute("data-index"), 10);
+        removePendingOne(index);
+        showStatus("Removed one participant from the bulk batch. It will not be in the next export.");
+        return true;
+      }
+      if (target.classList.contains("remove-pending")) {
+        index = parseInt(target.getAttribute("data-index"), 10);
+        removePending(index);
+        showStatus("Removed the pending record. It will not be in the next export.");
+        return true;
+      }
+      return false;
+    }
+
+    function groupPendingEntries(entries) {
+      var groups = [];
+      var seen = {};
+      var i;
+      var entry;
+      var groupId;
+      var group;
+      for (i = 0; i < entries.length; i += 1) {
+        entry = entries[i];
+        groupId = entry.item.bulkGroup ? entry.item.groupId : "";
+        if (!groupId) {
+          groups.push({
+            bulk: false,
+            firstIndex: entry.index,
+            members: [entry]
+          });
+        } else if (!seen[groupId]) {
+          group = {
+            bulk: true,
+            firstIndex: entry.index,
+            members: [entry],
+            groupId: groupId
+          };
+          seen[groupId] = group;
+          groups.push(group);
+        } else {
+          seen[groupId].members.push(entry);
+        }
+      }
+      return groups;
+    }
+
+    function bulkPendingLabel(members) {
+      var first = members[0] && members[0].item;
+      var count = members.length;
+      var people = count === 1 ? "1 researcher" : count + " researchers";
+      var projects = first && first.bulkProjects ? first.bulkProjects : "";
+      return "Bulk interaction · " + people + (projects ? " · " + projects : "");
+    }
+
+    function renderPendingGroupsTable(groups, showIds) {
+      var html = ["<table><thead><tr><th>Type</th>"];
+      var i;
+      var g;
+      var m;
+      var item;
+      if (showIds) {
+        html.push("<th>ID</th>");
+      }
+      html.push("<th>Label</th><th></th></tr></thead><tbody>");
+      for (i = 0; i < groups.length; i += 1) {
+        g = groups[i];
+        if (g.bulk) {
+          html.push("<tr><td>Bulk interaction</td>");
+          if (showIds) {
+            html.push("<td>" + g.members.length + " rows</td>");
+          }
+          html.push(
+            "<td><details class=\"pending-group\" open><summary>" +
+            escapeHtml(bulkPendingLabel(g.members)) +
+            "</summary><div class=\"pending-group-members\"><table><tbody>"
+          );
+          for (m = 0; m < g.members.length; m += 1) {
+            item = g.members[m].item;
+            html.push(
+              "<tr><td>" + escapeHtml(item.label || item.recordId) +
+              "</td><td><button type=\"button\" class=\"remove-pending-one\" data-index=\"" +
+              g.members[m].index + "\">Remove</button></td></tr>"
+            );
+          }
+          html.push(
+            "</tbody></table></div></details></td>" +
+            "<td><button type=\"button\" class=\"remove-pending\" data-index=\"" +
+            g.firstIndex + "\">Remove batch</button></td></tr>"
+          );
+        } else {
+          item = g.members[0].item;
+          html.push("<tr><td>" + escapeHtml(item.type) + "</td>");
+          if (showIds) {
+            html.push("<td>" + escapeHtml(item.recordId) + "</td>");
+          }
+          html.push(
+            "<td>" + escapeHtml(item.label || item.email || "") +
+            "</td><td><button type=\"button\" class=\"remove-pending\" data-index=\"" +
+            g.firstIndex + "\">Remove</button></td></tr>"
+          );
+        }
+      }
+      html.push("</tbody></table>");
+      return html.join("");
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replace(/&/g, "&amp;")
@@ -2239,8 +2702,6 @@
 
     function renderPending() {
       var html = [];
-      var i;
-      var item;
       var exportBtn = document.getElementById("export-btn");
 
       if (!state.model) {
@@ -2257,18 +2718,9 @@
       if (!state.pending.length) {
         html.push("<p class=\"muted\">None. Added records stay here until you export.</p>");
       } else {
-        html.push("<table><thead><tr><th>Type</th><th>ID</th><th>Label</th><th></th></tr></thead><tbody>");
-        for (i = 0; i < state.pending.length; i += 1) {
-          item = state.pending[i];
-          html.push(
-            "<tr><td>" + escapeHtml(item.type) + "</td><td>" +
-            escapeHtml(item.recordId) + "</td><td>" +
-            escapeHtml(item.label || item.email || "") +
-            "</td><td><button type=\"button\" class=\"remove-pending\" data-index=\"" +
-            i + "\">Remove</button></td></tr>"
-          );
-        }
-        html.push("</tbody></table>");
+        html.push(renderPendingGroupsTable(groupPendingEntries(state.pending.map(function (pendingItem, index) {
+          return { index: index, item: pendingItem };
+        })), true));
       }
 
       document.getElementById("pending-list").innerHTML = html.join("");
@@ -2284,22 +2736,30 @@
     function resetEditorForms() {
       document.getElementById("researcher-form-el").reset();
       document.getElementById("ix-form-el").reset();
+      document.getElementById("bk-form-el").reset();
       document.getElementById("ei-form-el").reset();
       document.getElementById("co-form-el").reset();
       document.getElementById("new-org-wrap").hidden = true;
       showFormErrors("researcher-errors", []);
       showFormErrors("ix-errors", []);
+      showFormErrors("bk-errors", []);
       showFormErrors("ei-errors", []);
       showFormErrors("co-errors", []);
       clearPicker("ix-researcher");
       clearPicker("ei-researcher");
       document.getElementById("ix-engagement-id").value = "";
       document.getElementById("ix-engagement-bound").textContent = "Engagement is already selected.";
+      document.getElementById("bk-engagement-id").value = "";
+      document.getElementById("bk-engagement-bound").textContent = "Engagement is already selected.";
+      document.getElementById("bk-researcher-options").innerHTML = "";
+      document.getElementById("bk-project-options").innerHTML = "";
+      document.getElementById("bk-researcher-count").textContent = "0 researchers selected";
       document.getElementById("co-interaction-id").value = "";
       document.getElementById("co-interaction-bound").textContent = "Copied from the selected history row.";
       document.getElementById("co-researcher-id").value = "";
       document.getElementById("co-researcher-label").textContent = "Copied from the source interaction.";
       document.getElementById("ix-date-warning").hidden = true;
+      document.getElementById("bk-date-warning").hidden = true;
       document.getElementById("ei-date-warning").hidden = true;
       document.getElementById("co-date-warning").hidden = true;
     }
@@ -2345,7 +2805,7 @@
     function fillSharedInteractionFields(prefix) {
       setIdField(prefix + "-interaction-id", prefix + "-interaction-id-hint", nextIdProposal("interactions", "interaction_id"));
       fillInteractionLists(prefix);
-      fillResearcherProjectSelect(prefix + "-project", pickerId(prefix === "ix" ? "ix-researcher" : "ei-researcher"));
+      fillInteractionProjectOptions(prefix, pickerId(prefix === "ix" ? "ix-researcher" : "ei-researcher"));
       document.getElementById(prefix + "-date").value = todayYmd();
       document.getElementById(prefix + "-summary").value = "";
       document.getElementById(prefix + "-next").value = "";
@@ -2375,6 +2835,37 @@
       setView("interaction");
       renderReview();
       document.getElementById("ix-researcher-search").focus();
+    }
+
+    function openBulkForm() {
+      var review;
+      if (!state.model) {
+        showStatus("Load a workbook first.", true);
+        return;
+      }
+      if (!state.model.tables.interactions || !state.model.tables.engagements || !state.model.tables.researchers) {
+        showStatus("The interactions, engagements, and researchers sheets are required.", true);
+        return;
+      }
+      review = findReview(state.currentEngagementId);
+      if (!review) {
+        showStatus("Open an engagement before adding a bulk interaction.", true);
+        return;
+      }
+      resetEditorForms();
+      document.getElementById("bk-engagement-id").value = review.engagement_id;
+      document.getElementById("bk-engagement-bound").textContent =
+        "Engagement is " + engagementDisplayTitle(review) + " (not a picker).";
+      fillInteractionLists("bk");
+      document.getElementById("bk-date").value = todayYmd();
+      document.getElementById("bk-summary").value = "";
+      document.getElementById("bk-next").value = "";
+      updateDateWarning("bk-date", "bk-date-warning");
+      fillBulkResearcherOptions();
+      fillBulkProjectOptions();
+      setView("bulk");
+      renderReview();
+      document.getElementById("bk-researcher-search").focus();
     }
 
     function openEngagementForm() {
@@ -2552,7 +3043,7 @@
         interaction_id: document.getElementById(prefix + "-interaction-id").value.trim(),
         engagement_id: prefix === "ix" ? document.getElementById("ix-engagement-id").value.trim() : document.getElementById("ei-engagement-id").value.trim(),
         researcher_id: pickerId(prefix + "-researcher"),
-        project: document.getElementById(prefix + "-project").value,
+        project: joinProjects(selectedInteractionProjects(prefix)),
         interaction_date: document.getElementById(prefix + "-date").value,
         interaction_channel: document.getElementById(prefix + "-channel").value,
         engagement_direction: document.getElementById(prefix + "-direction").value,
@@ -2566,6 +3057,8 @@
       var errors = [];
       var researcher;
       var researcherProjects;
+      var interactionProjects;
+      var i;
       options = options || {};
 
       if (isEmpty(values.interaction_id)) {
@@ -2590,12 +3083,19 @@
           errors.push("That researcher is not in the workbook.");
         } else {
           researcherProjects = parseProjects(researcher.project);
+          interactionProjects = parseProjects(values.project);
           if (!researcherProjects.length) {
             errors.push("This researcher has no projects. Add projects on the researcher in Excel, or add a researcher with projects first.");
-          } else if (isEmpty(values.project)) {
-            errors.push(researcherProjects.length > 1 ? "Choose a project for this interaction." : "Project is required.");
-          } else if (researcherProjects.indexOf(values.project) === -1) {
-            errors.push("Project must be one of this researcher's projects.");
+          } else if (!interactionProjects.length) {
+            errors.push(researcherProjects.length > 1
+              ? "Choose at least one project for this interaction."
+              : "Project is required.");
+          } else {
+            for (i = 0; i < interactionProjects.length; i += 1) {
+              if (researcherProjects.indexOf(interactionProjects[i]) === -1) {
+                errors.push("Project " + interactionProjects[i] + " is not one of this researcher's projects.");
+              }
+            }
           }
         }
       }
@@ -2670,6 +3170,135 @@
       });
       showReviewView(values.engagement_id);
       showStatus("Added the interaction. Export a versioned workbook when you are ready.");
+    }
+
+    function submitBulkInteractionForm(event) {
+      var researcherIds;
+      var selectedProjects;
+      var engagementId;
+      var errors = [];
+      var blocked = [];
+      var rows = [];
+      var ids;
+      var i;
+      var researcher;
+      var stored;
+      var values;
+      var result;
+      var created = [];
+      var groupId;
+      var warnings = [];
+      var confirmCount;
+      var rollback;
+      event.preventDefault();
+      engagementId = document.getElementById("bk-engagement-id").value.trim();
+      researcherIds = selectedBulkResearcherIds();
+      selectedProjects = selectedInteractionProjects("bk");
+      if (!researcherIds.length) {
+        showFormErrors("bk-errors", ["Choose at least one researcher."]);
+        return;
+      }
+      if (!selectedProjects.length) {
+        showFormErrors("bk-errors", ["Choose at least one project this activity is about."]);
+        return;
+      }
+
+      for (i = 0; i < researcherIds.length; i += 1) {
+        researcher = findRow("researchers", "researcher_id", researcherIds[i]);
+        stored = storedProjectsForResearcher(researcherIds[i], selectedProjects);
+        if (!stored) {
+          blocked.push(researcher ? researcherLabel(researcher) : researcherIds[i]);
+        }
+      }
+      if (blocked.length) {
+        errors.push(
+          "These researchers would receive an empty project set. Deselect them or change the activity projects: " +
+          blocked.join("; ") + "."
+        );
+        showFormErrors("bk-errors", errors);
+        return;
+      }
+
+      confirmCount = researcherIds.length;
+      if (confirmCount >= 100 && !window.confirm("Create " + confirmCount + " interaction rows? This is a large batch.")) {
+        return;
+      }
+      if (confirmCount >= 25 && confirmCount < 100 && !window.confirm("Create " + confirmCount + " interaction rows?")) {
+        return;
+      }
+
+      ids = reserveInteractionIds(researcherIds.length);
+      for (i = 0; i < researcherIds.length; i += 1) {
+        values = {
+          interaction_id: ids[i],
+          engagement_id: engagementId,
+          researcher_id: researcherIds[i],
+          project: storedProjectsForResearcher(researcherIds[i], selectedProjects),
+          interaction_date: document.getElementById("bk-date").value,
+          interaction_channel: document.getElementById("bk-channel").value,
+          engagement_direction: document.getElementById("bk-direction").value,
+          interaction_purpose: document.getElementById("bk-purpose").value,
+          interaction_summary: document.getElementById("bk-summary").value.trim(),
+          next_action: document.getElementById("bk-next").value.trim()
+        };
+        errors = errors.concat(validateInteraction(values));
+        if (similarInteractionWarning(values)) {
+          researcher = findRow("researchers", "researcher_id", researcherIds[i]);
+          warnings.push(
+            (researcher && researcher.researcher_name ? researcher.researcher_name : researcherIds[i]) +
+            " already has a " + values.interaction_channel +
+            " on this engagement on " + values.interaction_date + "."
+          );
+        }
+        rows.push(values);
+      }
+      if (errors.length) {
+        showFormErrors("bk-errors", errors);
+        return;
+      }
+      if (warnings.length && !window.confirm(warnings.join("\n") + "\nCreate anyway?")) {
+        return;
+      }
+
+      groupId = "bulk-" + Date.now();
+      for (i = 0; i < rows.length; i += 1) {
+        result = addInteractionRecord(rows[i]);
+        if (!result.ok) {
+          for (rollback = created.length - 1; rollback >= 0; rollback -= 1) {
+            removePendingItem(created[rollback]);
+          }
+          showFormErrors("bk-errors", [result.error || "Could not add the bulk interaction."]);
+          return;
+        }
+        created.push({
+          sheet: "interactions",
+          excelRow: result.record._excelRow,
+          record: result.record,
+          values: rows[i]
+        });
+      }
+      for (i = 0; i < created.length; i += 1) {
+        researcher = findRow("researchers", "researcher_id", created[i].values.researcher_id);
+        state.pending.push({
+          type: "Interaction",
+          sheet: "interactions",
+          excelRow: created[i].excelRow,
+          recordId: created[i].record.interaction_id,
+          engagement_id: engagementId,
+          researcher_id: created[i].values.researcher_id,
+          label: (researcher && researcher.researcher_name ? researcher.researcher_name : created[i].values.researcher_id) +
+            " · " + parseProjects(created[i].values.project).join(", "),
+          groupId: groupId,
+          bulkGroup: true,
+          bulkProjects: selectedProjects.join(", ")
+        });
+      }
+
+      showReviewView(engagementId);
+      showStatus(
+        "Added a bulk interaction for " + rows.length +
+        " researchers. Removing the batch removes all of them. Export when you are ready."
+      );
     }
 
     function validateEngagement(values) {
@@ -2960,33 +3589,31 @@
           showStatus("");
           openInteractionForm();
         }
+        if (event.target.id === "review-bulk-interaction") {
+          showStatus("");
+          openBulkForm();
+        }
       });
       document.getElementById("review-body").addEventListener("click", function (event) {
-        var target = event.target;
-        var index;
-        if (target.classList.contains("add-contribution-row")) {
-          showStatus("");
-          openContributionForm(target.getAttribute("data-interaction-id"));
+        if (!handlePendingRemoveClick(event.target)) {
           return;
         }
-        if (!target.classList.contains("remove-pending")) {
-          return;
-        }
-        index = parseInt(target.getAttribute("data-index"), 10);
-        removePending(index);
         refreshOpenFormIds();
         if (state.currentEngagementId && findReview(state.currentEngagementId)) {
           showReviewView(state.currentEngagementId);
         } else {
           showSummariesView();
         }
-        showStatus("Removed the pending record. It will not be in the next export.");
       });
       document.getElementById("researcher-cancel").addEventListener("click", function () {
         showStatus("");
         returnFromChromeForm();
       });
       document.getElementById("ix-cancel").addEventListener("click", function () {
+        showStatus("");
+        showReviewView(state.currentEngagementId);
+      });
+      document.getElementById("bk-cancel").addEventListener("click", function () {
         showStatus("");
         showReviewView(state.currentEngagementId);
       });
@@ -3000,6 +3627,7 @@
       });
       document.getElementById("researcher-form-el").addEventListener("submit", submitResearcherForm);
       document.getElementById("ix-form-el").addEventListener("submit", submitInteractionForm);
+      document.getElementById("bk-form-el").addEventListener("submit", submitBulkInteractionForm);
       document.getElementById("ei-form-el").addEventListener("submit", submitEngagementForm);
       document.getElementById("co-form-el").addEventListener("submit", submitContributionForm);
       document.getElementById("researcher-org").addEventListener("change", function () {
@@ -3010,14 +3638,24 @@
         }
       });
       bindPicker("ix-researcher", researcherPickerItems, function (researcherId) {
-        fillResearcherProjectSelect("ix-project", researcherId);
+        fillInteractionProjectOptions("ix", researcherId);
       });
       bindPicker("ei-researcher", researcherPickerItems, function (researcherId) {
-        fillResearcherProjectSelect("ei-project", researcherId);
+        fillInteractionProjectOptions("ei", researcherId);
       });
       document.getElementById("ix-date").addEventListener("change", function () {
         updateDateWarning("ix-date", "ix-date-warning");
       });
+      document.getElementById("bk-date").addEventListener("change", function () {
+        updateDateWarning("bk-date", "bk-date-warning");
+      });
+      document.getElementById("bk-researcher-search").addEventListener("input", filterBulkResearchers);
+      document.getElementById("bk-researcher-options").addEventListener("change", function () {
+        updateBulkResearcherCount();
+        fillBulkProjectOptions();
+      });
+      document.getElementById("bk-select-participants").addEventListener("click", selectBulkParticipants);
+      document.getElementById("bk-clear-researchers").addEventListener("click", clearBulkResearchers);
       document.getElementById("ei-date").addEventListener("change", function () {
         updateDateWarning("ei-date", "ei-date-warning");
       });
@@ -3025,16 +3663,11 @@
         updateDateWarning("co-date", "co-date-warning");
       });
       document.getElementById("pending-list").addEventListener("click", function (event) {
-        var target = event.target;
-        var index;
-        if (!target.classList.contains("remove-pending")) {
+        if (!handlePendingRemoveClick(event.target)) {
           return;
         }
-        index = parseInt(target.getAttribute("data-index"), 10);
-        removePending(index);
         refreshOpenFormIds();
         renderWorkspace();
-        showStatus("Removed the pending record. It will not be in the next export.");
       });
       document.getElementById("export-btn").addEventListener("click", exportVersionedWorkbook);
     }());
