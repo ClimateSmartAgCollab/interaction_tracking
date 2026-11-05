@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Update this date when releasing a new version of this page. -->
+  <meta name="release-date" content="2026-11-04">
   <title>Researcher Engagement Dashboard</title>
   <style>
     :root {
@@ -15,9 +17,76 @@
       box-sizing: border-box;
     }
     body {
+      margin: 0;
+      padding: 0 0 64px;
+    }
+    .page {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 20px 64px;
+      padding: 32px 20px 0;
+    }
+    /* Site chrome: keep in sync across index.html, dashboard.html, data_entry.html, validation.html */
+    .site-header {
+      background: #102a43;
+      color: #f5f7fa;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .site-header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px 24px;
+    }
+    .site-header-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 24px;
+    }
+    .site-brand {
+      font-weight: 700;
+      color: #f5f7fa;
+      text-decoration: none;
+    }
+    .site-brand:hover,
+    .site-brand:focus {
+      color: #fff;
+      text-decoration: underline;
+    }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+    .site-nav a {
+      color: #d9e2ec;
+      text-decoration: none;
+    }
+    .site-nav a:hover,
+    .site-nav a:focus {
+      color: #fff;
+      text-decoration: underline;
+    }
+    .site-nav a:focus {
+      outline: 2px solid #d9e2ec;
+      outline-offset: 3px;
+    }
+    .site-nav a[aria-current="page"] {
+      color: #fff;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .site-updated {
+      margin: 0;
+      color: #bcccdc;
+      font-size: 0.85rem;
     }
     h1 {
       margin: 0 0 4px;
@@ -600,6 +669,21 @@
   </style>
 </head>
 <body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="site-header-main">
+      <a class="site-brand" href="index.html">Researcher Engagement Tracker</a>
+      <nav class="site-nav" aria-label="Toolkit">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html" aria-current="page">Dashboard</a>
+        <a href="data_entry.html">Data Entry</a>
+        <a href="validation.html">Validation</a>
+      </nav>
+      </div>
+      <p class="site-updated">Last updated: <time id="release-date"></time></p>
+    </div>
+  </header>
+  <div class="page">
   <a id="top"></a>
   <header>
     <h1>Researcher Engagement Dashboard</h1>
@@ -676,7 +760,18 @@
       </section>
     </main>
   </div>
+  </div>
 
+  <script>
+    (function () {
+      var meta = document.querySelector('meta[name="release-date"]');
+      var el = document.getElementById("release-date");
+      if (meta && el) {
+        el.setAttribute("datetime", meta.content);
+        el.textContent = meta.content;
+      }
+    }());
+  </script>
   <script>
     /* ==================================================
        PARSE

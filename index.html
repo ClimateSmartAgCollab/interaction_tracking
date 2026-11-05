@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Update this date when releasing a new version of this page. -->
+  <meta name="release-date" content="2026-11-04">
+  <title>Researcher Engagement Tracker</title>
+  <style>
+    :root {
+      color: #1f2933;
+      background: #f5f7fa;
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0 0 64px;
+    }
+
+    /* Site chrome: keep in sync across index.html, dashboard.html, data_entry.html, validation.html */
+    .site-header {
+      background: #102a43;
+      color: #f5f7fa;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .site-header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px 24px;
+    }
+    .site-header-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 24px;
+    }
+    .site-brand {
+      font-weight: 700;
+      color: #f5f7fa;
+      text-decoration: none;
+    }
+    .site-brand:hover,
+    .site-brand:focus {
+      color: #fff;
+      text-decoration: underline;
+    }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+    .site-nav a {
+      color: #d9e2ec;
+      text-decoration: none;
+    }
+    .site-nav a:hover,
+    .site-nav a:focus {
+      color: #fff;
+      text-decoration: underline;
+    }
+    .site-nav a:focus {
+      outline: 2px solid #d9e2ec;
+      outline-offset: 3px;
+    }
+    .site-nav a[aria-current="page"] {
+      color: #fff;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .site-updated {
+      margin: 0;
+      color: #bcccdc;
+      font-size: 0.85rem;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 0;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: #102a43;
+    }
+    h2 {
+      margin: 36px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #486581;
+      color: #243b53;
+    }
+    p.note {
+      margin: 0 0 24px;
+      color: #627d98;
+    }
+
+    .workflow {
+      list-style: none;
+      margin: 0 0 8px;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+    .workflow li {
+      background: #fff;
+      border: 1px solid #bcccdc;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 2px rgba(16, 42, 67, 0.08);
+    }
+    .workflow-step {
+      display: block;
+      color: #627d98;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .workflow a {
+      color: #3e7cb1;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .workflow a:hover,
+    .workflow a:focus {
+      text-decoration: underline;
+    }
+
+    .catalog-group {
+      margin: 0 0 24px;
+    }
+    .catalog-group h3 {
+      margin: 0 0 10px;
+      color: #334e68;
+      font-size: 1rem;
+    }
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .tool-card {
+      display: block;
+      background: #fff;
+      border: 1px solid #bcccdc;
+      border-radius: 8px;
+      padding: 16px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: 0 1px 2px rgba(16, 42, 67, 0.08);
+    }
+    a.tool-card:hover,
+    a.tool-card:focus {
+      border-color: #3e7cb1;
+    }
+    .tool-card h4 {
+      margin: 0 0 6px;
+      color: #102a43;
+    }
+    .tool-card p {
+      margin: 0;
+      color: #486581;
+      font-size: 0.95rem;
+    }
+    .status {
+      display: inline-block;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #3e7cb1;
+    }
+
+    .how-it-works {
+      margin: 0;
+      padding-left: 20px;
+      color: #243b53;
+    }
+    .how-it-works li { margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="site-header-main">
+      <a class="site-brand" href="index.html">Researcher Engagement Tracker</a>
+      <nav class="site-nav" aria-label="Toolkit">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="data_entry.html">Data Entry</a>
+        <a href="validation.html">Validation</a>
+      </nav>
+      </div>
+      <p class="site-updated">Last updated: <time id="release-date"></time></p>
+    </div>
+  </header>
+
+  <main class="page">
+    <h1>Researcher Engagement Tracker</h1>
+    <p class="note">The workbook stays on this computer. Nothing is uploaded.</p>
+
+    <h2>Workflow</h2>
+    <ol class="workflow">
+      <li>
+        <span class="workflow-step">Create or Update Records</span>
+        <a href="data_entry.html">Data Entry</a>
+      </li>
+      <li>
+        <span class="workflow-step">Check Workbook Quality</span>
+        <a href="validation.html">Validation</a>
+      </li>
+      <li>
+        <span class="workflow-step">Review Results</span>
+        <a href="dashboard.html">Dashboard</a>
+      </li>
+    </ol>
+
+    <h2>Tools</h2>
+    <section class="catalog-group">
+      <h3>Day-to-day</h3>
+      <div class="catalog">
+        <a class="tool-card" href="data_entry.html">
+          <span class="status">Available</span>
+          <h4>Data Entry</h4>
+          <p>Add records locally. Export downloads a new versioned copy and never overwrites the file you opened.</p>
+        </a>
+        <a class="tool-card" href="validation.html">
+          <span class="status">Available</span>
+          <h4>Validation</h4>
+          <p>Review data quality issues in the workbook before you rely on the dashboard.</p>
+        </a>
+        <a class="tool-card" href="dashboard.html">
+          <span class="status">Available</span>
+          <h4>Dashboard</h4>
+          <p>Load the workbook in the browser for program review.</p>
+        </a>
+      </div>
+    </section>
+
+    <h2>How it works</h2>
+    <ul class="how-it-works">
+      <li>Excel remains the source of truth.</li>
+      <li>These pages run in your browser. GitHub only hosts the HTML tools.</li>
+      <li>Drop or choose the workbook on each tool. Switching pages unloads it, so load the file again on the next page.</li>
+      <li>Nothing is uploaded. No account is required.</li>
+    </ul>
+  </main>
+
+  <script>
+    (function () {
+      var meta = document.querySelector('meta[name="release-date"]');
+      var el = document.getElementById("release-date");
+      if (meta && el) {
+        el.setAttribute("datetime", meta.content);
+        el.textContent = meta.content;
+      }
+    }());
+  </script>
+</body>
+</html>

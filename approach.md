@@ -26,11 +26,22 @@ All workbook corrections are performed manually by users after reviewing generat
 
 Day-to-day review uses self-contained HTML files that run in the browser with no server and no Python runtime:
 
-- `validation.html`
+- `index.html` – toolkit homepage
 - `data_entry.html`
+- `validation.html`
 - `dashboard.html`
 
-Each file is opened locally. The user selects or drops the `.xlsx` workbook. Nothing is uploaded. `dashboard.html` is the engagement dashboard; Python dashboard generation in `src/reporting/` remains in the repository but is not the default workflow.
+Open the hosted toolkit at `https://climatesmartagcollab.github.io/interaction_tracking/` after GitHub Pages is enabled from `main` / root, or open the same HTML files from this folder. The user selects or drops the `.xlsx` workbook. Nothing is uploaded. GitHub hosts the HTML only.
+
+Usual sequence:
+
+1. Create or update records in Data Entry
+2. Check workbook quality in Validation
+3. Review results in the Dashboard
+
+Switching pages unloads the workbook; load the file again on the next tool. Each page shows a **Last updated** date from its `release-date` meta tag.
+
+`dashboard.html` is the engagement dashboard; Python dashboard generation in `src/reporting/` remains in the repository but is not the default workflow.
 
 ---
 

@@ -18,6 +18,7 @@ runs/
 
 # Generated HTML reports
 *.html
+!index.html
 !validation.html
 !data_entry.html
 !dashboard.html
