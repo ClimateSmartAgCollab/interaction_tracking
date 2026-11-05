@@ -20,6 +20,7 @@ runs/
 *.html
 !validation.html
 !data_entry.html
+!dashboard.html
 
 # Generated PDF reports
 *.pdf

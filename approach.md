@@ -24,6 +24,14 @@ The Python application never modifies workbook contents.
 
 All workbook corrections are performed manually by users after reviewing generated reports.
 
+Day-to-day review uses self-contained HTML files that run in the browser with no server and no Python runtime:
+
+- `validation.html`
+- `data_entry.html`
+- `dashboard.html`
+
+Each file is opened locally. The user selects or drops the `.xlsx` workbook. Nothing is uploaded. `dashboard.html` is the engagement dashboard; Python dashboard generation in `src/reporting/` remains in the repository but is not the default workflow.
+
 ---
 
 # Workbook Structure
@@ -341,7 +349,9 @@ The dashboard is not intended to be a simple historical report.
 
 # Dashboard Sections
 
-### Executive Summary
+The live dashboard is `dashboard.html`. Its first metrics section is titled Program Snapshot. The Python-generated dashboard used the heading Executive Summary for the same role.
+
+### Program Snapshot / Executive Summary
 
 High-level portfolio metrics.
 
